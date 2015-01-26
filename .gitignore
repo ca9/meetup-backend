@@ -7,6 +7,7 @@
 
 ## Directory-based project format:
 .idea/
+.idea/*
 # if you remove the above rule, at least ignore the following:
 
 # User-specific stuff:
@@ -76,5 +77,6 @@ Temporary Items
 ### AppEngine ###
 # Google App Engine - https://developers.google.com/appengine/
 appengine-generated/
-
-
+client_ids.py
+api/client_ids.py
+*.pyc
