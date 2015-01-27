@@ -24,7 +24,7 @@ class AsyncStateMachine:
 
     def _clear(self):
         # These store the various asynchronous operations (i.e.
-        #generators).  Only one of them, at most, is ever active at a
+        # generators).  Only one of them, at most, is ever active at a
         #time.
         self.handshaker = None
         self.closer = None
@@ -40,7 +40,7 @@ class AsyncStateMachine:
 
     def _checkAssert(self, maxActive=1):
         # This checks that only one operation, at most, is
-        #active, and that self.result is set appropriately.
+        # active, and that self.result is set appropriately.
         activeOps = 0
         if self.handshaker:
             activeOps += 1

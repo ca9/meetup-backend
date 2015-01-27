@@ -92,7 +92,7 @@ class X509CertChain:
             rootFingerprints = [c.getFingerprint() for c in x509TrustList]
 
             # Check that every certificate in the chain validates with the
-            #next one
+            # next one
             for cert1, cert2 in zip(self.x509List, self.x509List[1:]):
 
                 #If we come upon a root certificate, we're done.

@@ -12,7 +12,7 @@ import errno
 
 
 # The TLSConnection is created around a "fake socket" that
-#plugs it into the underlying Twisted transport
+# plugs it into the underlying Twisted transport
 class _FakeSocket:
     def __init__(self, wrapper):
         self.wrapper = wrapper

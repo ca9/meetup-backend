@@ -20,7 +20,7 @@ class IntegrationHelper:
             self.username = username
             self.password = password
 
-        #Shared Key Authentication
+        # Shared Key Authentication
         elif username and sharedKey and not \
                 (password or certChain or privateKey):
             self.username = username
@@ -40,7 +40,7 @@ class IntegrationHelper:
         else:
             raise ValueError("Bad parameters")
 
-        #Authenticate the server based on its cryptoID or fingerprint
+        # Authenticate the server based on its cryptoID or fingerprint
         if sharedKey and (cryptoID or protocol or x509Fingerprint):
             raise ValueError("Can't use shared keys with other forms of" \
                              "authentication")

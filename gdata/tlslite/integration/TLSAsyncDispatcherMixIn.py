@@ -79,7 +79,7 @@ class TLSAsyncDispatcherMixIn(AsyncStateMachine):
             self.tlsConnection = TLSConnection(sock)
 
         # Calculate the sibling I'm being mixed in with.
-        #This is necessary since we override functions
+        # This is necessary since we override functions
         #like readable(), handle_read(), etc., but we
         #also want to call the sibling's versions.
         for cl in self.__class__.__bases__:
