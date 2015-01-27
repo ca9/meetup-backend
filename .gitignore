@@ -80,3 +80,4 @@ appengine-generated/
 client_ids.py
 api/client_ids.py
 *.pyc
+api/auth_jsons/*
