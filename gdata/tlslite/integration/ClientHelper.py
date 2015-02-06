@@ -119,7 +119,7 @@ class ClientHelper:
             self.username = username
             self.sharedKey = sharedKey
 
-        #Certificate Chain Authentication
+        # Certificate Chain Authentication
         elif certChain and privateKey and not \
                 (username or password or sharedKey):
             self.certChain = certChain

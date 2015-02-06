@@ -108,17 +108,29 @@ class UserApi(remote.Service):
     def check_or_make_user(self, query):
         return check_or_make()
 
+
+    # Important Note: For concealed post messages (request body), we need to include a
+    # messages.Message object that is well defined (serving as a jsondict). This is
+    # encapsulated in a ResourceContainer.
+    class FirstLoginMessage(messages.Message):
+        """ JSON that contains all fields of the first message to the server. """
+        name = messages.StringField(1, required=True)
+        phNumber = messages.StringField(2, required=True)
+        regID = messages.StringField(3, required=True)
+
+    FIRST_LOGIN_RESOURCE_SECURE = endpoints.ResourceContainer(FirstLoginMessage)
+
     FIRST_LOGIN_RESOURCE = endpoints.ResourceContainer(
         name=messages.StringField(1, required=True),
         phNumber=messages.StringField(2, required=True),
         regID=messages.StringField(3, required=True)
     )
 
-    @endpoints.method(FIRST_LOGIN_RESOURCE,  # Goes in
+    @endpoints.method(FIRST_LOGIN_RESOURCE_SECURE,  # Goes in
                       api_reply,  # Comes out
-                      path='firstLogin/{name}/{phNumber}/{regID}',
-                      name='user.firstLogin',
-                      http_method='POST')
+                      http_method='POST',
+                      path='firstLogin',
+                      name='user.firstLogin')
     def first_login(self, request):
         e_user = endpoints.get_current_user()
         if e_user:
@@ -137,21 +149,15 @@ class UserApi(remote.Service):
         return api_reply(str_value="Unauthenticated. Please login.",
                          int_value=0)
 
-    # @endpoints.method(message_types.VoidMessage,
-    # api_reply,
-    # path="auth_web_session",
-    #                   name="auth_web_session")
-    # def auth_web_session(self, request):
-    #     # print self.request_state.headers._headers
-    #     # all_contacts(gd_client)
-    #     flow = OAuth2WebServerFlow(
-    #         client_id = "812458715891-p8e6e4oqph65matkdr1v06r02vtri1du.apps.googleusercontent.com",
-    #         client_secret= "RI_-U5vqK-Do6MoVTLrw838n",
-    #         scope=client_ids.CONTACTS_SCOPE,
-    #         redirect_uri='http://localhost:8080/_ah/api/users_api/v1/auth_web_session_step2',
-    #     )
-    #     auth_uri = flow.step1_get_authorize_url()
-    #     return api_reply(str_value=auth_uri)
+    # Important Note: For concealed post messages (request body), we need to include a
+    # messages.Message object that is well defined (serving as a jsondict). This is
+    # encapsulated in a ResourceContainer.
+    class FirstLoginMessage(messages.Message):
+        """ JSON that contains all fields of the first message to the server. """
+        name = messages.StringField(1, required=True)
+        phNumber = messages.StringField(2, required=True)
+        regID = messages.StringField(3, required=True)
+
 
     @endpoints.method(path="print_contacts",
                       name="print_contacts")

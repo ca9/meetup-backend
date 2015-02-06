@@ -95,7 +95,7 @@ class X509CertChain:
             # next one
             for cert1, cert2 in zip(self.x509List, self.x509List[1:]):
 
-                #If we come upon a root certificate, we're done.
+                # If we come upon a root certificate, we're done.
                 if cert1.getFingerprint() in rootFingerprints:
                     return True
 
@@ -112,7 +112,7 @@ class X509CertChain:
                 cryptlib_py.cryptDestroyCert(c2)
                 c2 = None
 
-            #If the last certificate is one of the root certificates, we're
+            # If the last certificate is one of the root certificates, we're
             #done.
             if self.x509List[-1].getFingerprint() in rootFingerprints:
                 return True

@@ -25,7 +25,7 @@ class AsyncStateMachine:
     def _clear(self):
         # These store the various asynchronous operations (i.e.
         # generators).  Only one of them, at most, is ever active at a
-        #time.
+        # time.
         self.handshaker = None
         self.closer = None
         self.reader = None

@@ -121,7 +121,7 @@ class TLSTwistedProtocolWrapper(ProtocolWrapper, AsyncStateMachine):
                - AsyncStateMachine.(setCloseOp|setWriteOp)
     """
 
-    #WARNING: IF YOU COPY-AND-PASTE THE ABOVE CODE, BE SURE TO REMOVE
+    # WARNING: IF YOU COPY-AND-PASTE THE ABOVE CODE, BE SURE TO REMOVE
     #THE EXTRA ESCAPING AROUND "\\r\\n"
 
     def __init__(self, factory, wrappedProtocol):
