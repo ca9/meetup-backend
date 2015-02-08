@@ -81,3 +81,11 @@ client_ids.py
 api/client_ids.py
 *.pyc
 api/auth_jsons/*
+
+###AndroidStudio###
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
