@@ -1,10 +1,5 @@
 from authentication import *
-
-
-class Meetup(EndpointsModel):
-    created = ndb.DateTimeProperty(auto_now_add=True)
-    owner = ndb.KeyProperty(kind='UserModel')
-    destination = ndb.GeoPtProperty()
+from models import *
 
 
 @endpoints.api(name='data_api',

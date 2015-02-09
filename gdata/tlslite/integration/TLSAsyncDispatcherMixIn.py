@@ -81,7 +81,7 @@ class TLSAsyncDispatcherMixIn(AsyncStateMachine):
         # Calculate the sibling I'm being mixed in with.
         # This is necessary since we override functions
         # like readable(), handle_read(), etc., but we
-        #also want to call the sibling's versions.
+        # also want to call the sibling's versions.
         for cl in self.__class__.__bases__:
             if cl != TLSAsyncDispatcherMixIn and cl != AsyncStateMachine:
                 self.siblingClass = cl

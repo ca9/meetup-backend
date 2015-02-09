@@ -31,7 +31,7 @@ class AsyncStateMachine:
         self.reader = None
         self.writer = None
 
-        #This stores the result from the last call to the
+        # This stores the result from the last call to the
         #currently active operation.  If 0 it indicates that the
         #operation wants to read, if 1 it indicates that the
         #operation wants to write.  If None, there is no active

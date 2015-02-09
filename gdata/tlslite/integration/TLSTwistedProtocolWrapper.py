@@ -122,7 +122,7 @@ class TLSTwistedProtocolWrapper(ProtocolWrapper, AsyncStateMachine):
     """
 
     # WARNING: IF YOU COPY-AND-PASTE THE ABOVE CODE, BE SURE TO REMOVE
-    #THE EXTRA ESCAPING AROUND "\\r\\n"
+    # THE EXTRA ESCAPING AROUND "\\r\\n"
 
     def __init__(self, factory, wrappedProtocol):
         ProtocolWrapper.__init__(self, factory, wrappedProtocol)
