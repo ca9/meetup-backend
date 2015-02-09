@@ -12,6 +12,7 @@ import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -25,7 +26,22 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -40,6 +56,9 @@ public class LoginActivity extends ActionBarActivity {
     private static final String PROPERTY_APP_VERSION = "appVersion";
     private static final String PROPERTY_OAUTH_TOKEN="OAuthToken";
 
+    private static final String URL="https://intense-terra-821.appspot.com/_ah/api#p/";
+    private static  final String USER_LOGIN_API=URL+"users_api/v1/users_api.user.firstLogin";
+
     String SENDER_ID = "812458715891";
 
     GoogleCloudMessaging gcm;
@@ -49,6 +68,8 @@ public class LoginActivity extends ActionBarActivity {
     String regid;
 
     String mEmail; // Received from newChooseAccountIntent(); passed to getToken()
+    String profileName; //Received from GET request on google API
+
     private static final String SCOPE =
             "oauth2:https://www.googleapis.com/auth/userinfo.profile";
 
@@ -173,7 +194,7 @@ public class LoginActivity extends ActionBarActivity {
                     // so it can use GCM/HTTP or CCS to send messages to your app.
                     // The request to your server should be authenticated if your app
                     // is using accounts.
-                    sendRegistrationIdToBackend();
+//                    sendRegistrationIdToBackend();
 
                     // Persist the regID - no need to register again.
                     storeRegistrationId(context, regid);
@@ -199,7 +220,63 @@ public class LoginActivity extends ActionBarActivity {
      * or CCS to send messages to your app.
      */
     private void sendRegistrationIdToBackend() {
-        // Your implementation here.
+        new AsyncTask<Void,String,String>() {
+            @Override
+            protected String doInBackground(Void... params) {
+                String msg = "";
+                final SharedPreferences prefs = getLoginPreferences(context);
+                String regID=prefs.getString(PROPERTY_REG_ID, null);
+                String outhToken=prefs.getString(PROPERTY_OAUTH_TOKEN,null);
+                TelephonyManager tMgr =(TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+                String mPhoneNumber = tMgr.getLine1Number();
+                Log.v(TAG,"Sending info to backend at: "+USER_LOGIN_API);
+
+                getUserProfileInfo(outhToken);
+
+                JSONObject userObject=new JSONObject();
+                try {
+                    userObject.put("name",profileName);
+                    userObject.put("phNumber",mPhoneNumber);
+                    userObject.put("regID",regID);
+                    msg = postUserInfo(userObject,outhToken);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return msg;
+            }
+
+            @Override
+            protected void onPostExecute(String msg) {
+                Log.i(TAG, msg);
+            }
+        }.execute(null, null, null);
+    }
+
+    private String postUserInfo(JSONObject userObject, String outhToken){
+        String msg="";
+        HttpClient httpClient = new DefaultHttpClient();
+        // replace with your url
+        HttpPost httpPost = new HttpPost(USER_LOGIN_API);
+        httpPost.setHeader("HTTP_AUTHORIZATION",outhToken);
+
+        StringEntity se;
+
+        try {
+            se = new StringEntity(userObject.toString());
+            se.setContentType(new BasicHeader(HTTP.CONTENT_TYPE,"application/json"));
+            httpPost.setEntity(se);
+
+            HttpResponse response = httpClient.execute(httpPost);
+            // write response to log
+            Log.d("Http Post Response:", response.getStatusLine().toString());
+        } catch (ClientProtocolException | UnsupportedEncodingException e) {
+            // Log exception
+            e.printStackTrace();
+        } catch (IOException e) {
+            // Log exception
+            e.printStackTrace();
+        }
+        return msg;
     }
 
     /**
@@ -317,6 +394,33 @@ public class LoginActivity extends ActionBarActivity {
         editor.commit();
     }
 
+    private void getUserProfileInfo(String outhToken){
+        HttpClient Client = new DefaultHttpClient();
+
+        String URL = "https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token="+outhToken;
+        try
+        {
+            String SetServerString = "";
+
+            // Create Request to server and get response
+
+            HttpGet httpget = new HttpGet(URL);
+            ResponseHandler<String> responseHandler = new BasicResponseHandler();
+            SetServerString = Client.execute(httpget, responseHandler);
+
+            // Show response on activity
+
+            Log.v("Response: ",SetServerString);
+
+            JSONObject profileInfo=new JSONObject(SetServerString);
+            profileName=profileInfo.getString("name");
+        }
+        catch(Exception ex)
+        {
+            ex.printStackTrace();
+        }
+    }
+
 
     public class GetUsernameTask extends AsyncTask<Void,Void,Void> {
         Activity mActivity;
@@ -366,6 +470,11 @@ public class LoginActivity extends ActionBarActivity {
                 fatalException.printStackTrace();
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result){
+            sendRegistrationIdToBackend();
         }
 
     }
