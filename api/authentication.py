@@ -1,6 +1,6 @@
 from atom.auth import EndpointsAuth
-from common import *
 from models import *
+
 
 def check_user():
     """

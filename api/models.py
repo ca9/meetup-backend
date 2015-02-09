@@ -28,11 +28,11 @@ class UserModel(EndpointsModel):
     gcm_main = ndb.StringProperty()
     gcm_list = ndb.StringProperty(repeated=True)
 
-    def add_device(self, id, main=True):
+    def add_device(self, gcm_id, main=True):
         if main:
-            self.gcm_main = id
-        if id not in self.gcm_list:
-            self.gcm_list.append(id)
+            self.gcm_main = gcm_id
+        if gcm_id not in self.gcm_list:
+            self.gcm_list.append(gcm_id)
         self.put()
         return self.gcm_main
 
