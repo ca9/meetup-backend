@@ -1,53 +1,6 @@
 from atom.auth import EndpointsAuth
 from common import *
-
-
-class UserModel(EndpointsModel):
-    """
-    The default user model.
-    """
-    user = ndb.UserProperty()
-    email = ndb.StringProperty(required=True)
-
-    # Name
-    nickname = ndb.StringProperty()
-
-    def update_name(self, name):
-        self.nickname = name
-        return name
-
-    # Meetups
-    meetups = ndb.KeyProperty(repeated=True, kind='Meetup')
-
-    def add_meetup(self, a_meetup):
-        self.meetups.append(a_meetup)
-        self.put()
-        return a_meetup
-
-    # GCM Registration ID of Location uploading device.
-    gcm_main = ndb.StringProperty()
-    gcm_list = ndb.StringProperty(repeated=True)
-
-    def add_device(self, id, main=True):
-        if main:
-            self.gcm_main = id
-        if id not in self.gcm_list:
-            self.gcm_list.append(id)
-        self.put()
-        return self.gcm_main
-
-    phone = ndb.StringProperty()
-
-    # Friends
-    friends = ndb.KeyProperty(repeated=True, kind='UserModel')  # NDB Hack. No other way.
-
-    def add_friend(self, friend):
-        if friend not in self.friends:
-            self.friends.append(friend)
-            self.put()
-            return self.friends
-        return
-
+from models import *
 
 def check_user():
     """
@@ -108,7 +61,6 @@ class UserApi(remote.Service):
     def check_or_make_user(self, query):
         return check_or_make()
 
-
     # Important Note: For concealed post messages (request body), we need to include a
     # messages.Message object that is well defined (serving as a jsondict). This is
     # encapsulated in a ResourceContainer.
@@ -166,7 +118,7 @@ class UserApi(remote.Service):
         if e_user:
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
                                                              auth_token=EndpointsAuth())
-            #all_contacts(gd_client)
+            # all_contacts(gd_client)
             all_contacts(gd_client)
         return message_types.VoidMessage()
 

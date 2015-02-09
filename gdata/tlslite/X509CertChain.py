@@ -113,7 +113,7 @@ class X509CertChain:
                 c2 = None
 
             # If the last certificate is one of the root certificates, we're
-            #done.
+            # done.
             if self.x509List[-1].getFingerprint() in rootFingerprints:
                 return True
 

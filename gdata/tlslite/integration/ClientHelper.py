@@ -125,7 +125,7 @@ class ClientHelper:
             self.certChain = certChain
             self.privateKey = privateKey
 
-        #No Authentication
+        # No Authentication
         elif not password and not username and not \
                 sharedKey and not certChain and not privateKey:
             pass
