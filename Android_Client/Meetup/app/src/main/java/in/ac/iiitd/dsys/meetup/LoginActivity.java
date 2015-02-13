@@ -56,8 +56,8 @@ public class LoginActivity extends ActionBarActivity {
     private static final String PROPERTY_APP_VERSION = "appVersion";
     private static final String PROPERTY_OAUTH_TOKEN="OAuthToken";
 
-    private static final String URL="https://intense-terra-821.appspot.com/_ah/api#p/";
-    private static  final String USER_LOGIN_API=URL+"users_api/v1/users_api.user.firstLogin";
+    private static final String URL="https://intense-terra-821.appspot.com/_ah/api/";
+    private static  final String USER_LOGIN_API=URL+"users_api/v1/firstLogin";
 
     String SENDER_ID = "812458715891";
 
@@ -190,19 +190,13 @@ public class LoginActivity extends ActionBarActivity {
                     regid = gcm.register(SENDER_ID);
                     msg = "Device registered, registration ID=" + regid;
 
-                    // You should send the registration ID to your server over HTTP,
-                    // so it can use GCM/HTTP or CCS to send messages to your app.
-                    // The request to your server should be authenticated if your app
-                    // is using accounts.
-//                    sendRegistrationIdToBackend();
+                    //                    sendRegistrationIdToBackend();
 
                     // Persist the regID - no need to register again.
                     storeRegistrationId(context, regid);
                 } catch (IOException ex) {
                     msg = "Error :" + ex.getMessage();
-                    // If there is an error, don't just keep trying to register.
-                    // Require the user to click a button again, or perform
-                    // exponential back-off.
+
                 }
                 return msg;
             }
@@ -227,8 +221,10 @@ public class LoginActivity extends ActionBarActivity {
                 final SharedPreferences prefs = getLoginPreferences(context);
                 String regID=prefs.getString(PROPERTY_REG_ID, null);
                 String outhToken=prefs.getString(PROPERTY_OAUTH_TOKEN,null);
+
                 TelephonyManager tMgr =(TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
                 String mPhoneNumber = tMgr.getLine1Number();
+
                 Log.v(TAG,"Sending info to backend at: "+USER_LOGIN_API);
 
                 getUserProfileInfo(outhToken);
@@ -257,7 +253,7 @@ public class LoginActivity extends ActionBarActivity {
         HttpClient httpClient = new DefaultHttpClient();
         // replace with your url
         HttpPost httpPost = new HttpPost(USER_LOGIN_API);
-        httpPost.setHeader("HTTP_AUTHORIZATION",outhToken);
+        httpPost.setHeader("Authorization","Bearer "+outhToken);
 
         StringEntity se;
 
