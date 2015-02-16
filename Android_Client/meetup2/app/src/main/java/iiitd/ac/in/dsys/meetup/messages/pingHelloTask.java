@@ -15,7 +15,6 @@ import java.io.IOException;
  */
 public class pingHelloTask extends AsyncTask<Void, Void, ApiCommonApiReply> {
     Context context;
-    UsersApi.Builder builder;
     UsersApi usersApi;
 
     public pingHelloTask(Context context, UsersApi usersApi) {

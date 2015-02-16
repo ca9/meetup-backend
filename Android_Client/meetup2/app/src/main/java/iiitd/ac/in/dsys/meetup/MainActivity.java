@@ -8,12 +8,12 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.appspot.intense_terra_821.users_api.UsersApi;
 import com.appspot.intense_terra_821.users_api.UsersApiRequest;
 import com.appspot.intense_terra_821.users_api.UsersApiRequestInitializer;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpHeaders;
@@ -22,6 +22,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import java.util.Arrays;
 import java.util.Collection;
 
+import iiitd.ac.in.dsys.meetup.messages.contactsTask;
 import iiitd.ac.in.dsys.meetup.messages.firstLoginTask;
 import iiitd.ac.in.dsys.meetup.messages.pingHelloTask;
 
@@ -40,15 +41,12 @@ public class MainActivity extends ActionBarActivity {
     public static final String WEB_CLIENT_ID = "812458715891-p8e6e4oqph65matkdr1v06r02vtri1du.apps.googleusercontent.com";
     // Unused
     public static final String ANDROID_CLIENT_ID = "812458715891-cd592i6lgul160gf15ma2tbb1oj4k4k2.apps.googleusercontent.com";
-    /* Client used to interact with Google APIs. */
-
 
 
     // Scopes
     public static final String EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
     public static final String CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
-    public static final Collection<String> SCOPES = Arrays.asList(EMAIL_SCOPE, CONTACTS_SCOPE);
-
+    public static final Collection<String> SCOPES = Arrays.asList("server:client_id:" + WEB_CLIENT_ID, EMAIL_SCOPE, CONTACTS_SCOPE);
 
 
     @Override
@@ -60,9 +58,36 @@ public class MainActivity extends ActionBarActivity {
         settings = getSharedPreferences("MeetupPreferences", 0);
         // set Credentials (Pick chosen Account)
         setCredentials();
-        // build services
-        buildApiServices(false, "192.168.1.6");
+        // add UI Callbacks
+        setUICallbacks();
 
+        // build services. Set the first param to true to test locally. Second param is local IP of server.
+        buildApiServices(false, "192.168.1.6");
+    }
+
+    private void setUICallbacks() {
+        ((Button) findViewById(R.id.pingButton)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                (new pingHelloTask(MainActivity.this, usersApiInst)).execute();
+            }
+        });
+        ((Button) findViewById(R.id.firstLogin)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                (new firstLoginTask(MainActivity.this, usersApiInst,
+                        "1234",         // Regid
+                        accountEmail,   // Full Name
+                        "9654505022"    // Phone Number
+                )).execute();
+            }
+        });
+        ((Button) findViewById(R.id.contactsButton)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                (new contactsTask(MainActivity.this, usersApiInst)).execute();
+            }
+        });
     }
 
 
@@ -105,10 +130,12 @@ public class MainActivity extends ActionBarActivity {
 
     private void setCredentials() {
         credential = GoogleAccountCredential.usingAudience(this.getApplicationContext(), "server:client_id:" + WEB_CLIENT_ID);
+        // credential = GoogleAccountCredential.usingOAuth2(this, SCOPES);
         credential.setSelectedAccountName(settings.getString("ACCOUNT_NAME", null));
         if (credential.getSelectedAccountName() != null) {
             // Already signed in, begin app!
             Toast.makeText(getBaseContext(), "Logged in with : " + credential.getSelectedAccountName(), Toast.LENGTH_SHORT).show();
+            this.accountEmail = credential.getSelectedAccountName();
         } else {
             // Else request a selection.
             startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
@@ -156,7 +183,7 @@ public class MainActivity extends ActionBarActivity {
         } else {
             usersApiInst = userApiBuilder.build();
         }
-    }
 
+    }
 
 }

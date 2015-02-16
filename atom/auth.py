@@ -54,8 +54,10 @@ class EndpointsAuth(object):
         :return: EndpointsAuth object
         """
         import os
-
         self.bearer = os.getenv('HTTP_AUTHORIZATION')
+
+    def __init__(self, token):
+        self.bearer = token
 
     def fromBearer(self, bearerString):
         self.bearer = bearerString

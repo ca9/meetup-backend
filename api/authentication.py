@@ -1,4 +1,3 @@
-from endpoints import AUTH_LEVEL
 from atom.auth import EndpointsAuth
 from models import *
 
@@ -43,7 +42,7 @@ import gdata.contacts.data
 @endpoints.api(name='users_api',
                version='v1',
                description="Handle Users and Accounts for Meetups Apps.",
-               audiences=[client_ids.ANDROID_AUDIENCE],
+               audiences=[client_ids.ANDROID_AUDIENCE],  # WEB CLIENT ID
                scopes=[  # Get email and Details
                          endpoints.EMAIL_SCOPE,
                          # Get Contacts
@@ -68,10 +67,10 @@ class UserApi(remote.Service):
                       api_reply,  # Comes out
                       http_method='POST',
                       path='first_login',
-                      name='first_login')
+                      name='first_login', auth_level=AUTH_LEVEL.REQUIRED)
     def first_login(self, request):
         print "login request from" + str(request)
-        e_user = oauth.get_current_user(endpoints.EMAIL_SCOPE)
+        e_user = get_user()
         if e_user:
             print "logged in with" + str(e_user)
             if check_user():
@@ -94,10 +93,12 @@ class UserApi(remote.Service):
                          int_value=0)
 
 
+    # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
+    # Make endpoints_auth with that token.
     @endpoints.method(path="print_contacts",
                       name="print_contacts")
     def get_contacts(self, request):
-        e_user = endpoints.get_current_user()
+        e_user = get_user()
         if e_user:
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
                                                              auth_token=EndpointsAuth())
@@ -150,3 +151,33 @@ def all_contacts(gd_client):
         except Exception as e:
             print e
 
+
+# https://code.google.com/p/googleappengine/issues/detail?id=8848
+# https://code.google.com/p/googleappengine/issues/detail?id=10753
+def get_user():
+    """A workaround implementation for getting user."""
+    auth = os.getenv('HTTP_AUTHORIZATION')
+    bearer, token = auth.split()
+    token_type = 'id_token'
+    if 'OAUTH_USER_ID' in os.environ:
+        token_type = 'access_token'
+    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?%s=%s'
+           % (token_type, token))
+    user = {}
+    wait = 1
+    for i in range(3):
+        resp = urlfetch.fetch(url)
+        if resp.status_code == 200:
+            user = json.loads(resp.content)
+            break
+        elif resp.status_code == 400 and 'invalid_token' in resp.content:
+            url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?%s=%s'
+                   % ('access_token', token))
+        else:
+            time.sleep(wait)
+            wait += i
+    return users.User(
+        email=user['email'],
+        federated_provider=user['issuer'],
+        _user_id=user['user_id']
+    )
