@@ -2,6 +2,7 @@ __author__ = 'aditya'
 
 from protorpc import messages, remote, message_types
 from google.appengine.ext import ndb
+from google.appengine.api import oauth
 
 from endpoints_proto_datastore.ndb import EndpointsModel
 import endpoints

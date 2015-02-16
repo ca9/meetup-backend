@@ -1,3 +1,4 @@
+from endpoints import AUTH_LEVEL
 from atom.auth import EndpointsAuth
 from models import *
 
@@ -33,7 +34,6 @@ def check_or_make():
     return user
 
 
-import atom.data
 import gdata.data
 import gdata.contacts
 import gdata.contacts.client
@@ -43,23 +43,17 @@ import gdata.contacts.data
 @endpoints.api(name='users_api',
                version='v1',
                description="Handle Users and Accounts for Meetups Apps.",
-               audiences=client_ids.allowed_client_ids,
+               audiences=[client_ids.ANDROID_AUDIENCE],
                scopes=[  # Get email and Details
                          endpoints.EMAIL_SCOPE,
                          # Get Contacts
-                         client_ids.CONTACTS_SCOPE
-               ])
+                         client_ids.CONTACTS_SCOPE],
+               allowed_client_ids=client_ids.allowed_client_ids,
+               auth_level=AUTH_LEVEL.REQUIRED)
 class UserApi(remote.Service):
     """
     All the API endponts for User Accounts for Meetup - WayHome app.
     """
-
-    @UserModel.method(path='check_make_user',
-                      request_fields=('email', 'user',),
-                      name='user.fetch',
-                      user_required=True)
-    def check_or_make_user(self, query):
-        return check_or_make()
 
     # Important Note: For concealed post messages (request body), we need to include a
     # messages.Message object that is well defined (serving as a jsondict). This is
@@ -70,23 +64,18 @@ class UserApi(remote.Service):
         phNumber = messages.StringField(2, required=True)
         regID = messages.StringField(3, required=True)
 
-    FIRST_LOGIN_RESOURCE_SECURE = endpoints.ResourceContainer(FirstLoginMessage)
-
-    FIRST_LOGIN_RESOURCE = endpoints.ResourceContainer(
-        name=messages.StringField(1, required=True),
-        phNumber=messages.StringField(2, required=True),
-        regID=messages.StringField(3, required=True)
-    )
-
-    @endpoints.method(FIRST_LOGIN_RESOURCE_SECURE,  # Goes in
+    @endpoints.method(endpoints.ResourceContainer(FirstLoginMessage),  # Goes in
                       api_reply,  # Comes out
                       http_method='POST',
-                      path='firstLogin',
-                      name='user.firstLogin')
+                      path='first_login',
+                      name='first_login')
     def first_login(self, request):
-        e_user = endpoints.get_current_user()
+        print "login request from" + str(request)
+        e_user = oauth.get_current_user(endpoints.EMAIL_SCOPE)
         if e_user:
+            print "logged in with" + str(e_user)
             if check_user():
+                print str(e_user) + "already has an account"
                 return api_reply(str_value="Account already exists.",
                                  int_value=2)
             user = UserModel(nickname=request.name,
@@ -95,25 +84,19 @@ class UserApi(remote.Service):
                              email=e_user.email(),
                              id=e_user.user_id(),
                              user=e_user)
+            print "Made new user" + str(user)
             user.put()
+            print "User saved"
             return api_reply(str_value="Created Account for " + user.nickname,
                              int_value=1)
+        print "you're not logged in"
         return api_reply(str_value="Unauthenticated. Please login.",
                          int_value=0)
-
-    # Important Note: For concealed post messages (request body), we need to include a
-    # messages.Message object that is well defined (serving as a jsondict). This is
-    # encapsulated in a ResourceContainer.
-    class FirstLoginMessage(messages.Message):
-        """ JSON that contains all fields of the first message to the server. """
-        name = messages.StringField(1, required=True)
-        phNumber = messages.StringField(2, required=True)
-        regID = messages.StringField(3, required=True)
 
 
     @endpoints.method(path="print_contacts",
                       name="print_contacts")
-    def auth_web_session_step2(self, request):
+    def get_contacts(self, request):
         e_user = endpoints.get_current_user()
         if e_user:
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
@@ -121,6 +104,14 @@ class UserApi(remote.Service):
             # all_contacts(gd_client)
             all_contacts(gd_client)
         return message_types.VoidMessage()
+
+    @endpoints.method(message_types.VoidMessage,
+                      api_reply,
+                      path="ping_hello",
+                      http_method="GET",
+                      name="ping_hello")
+    def hello_ping(self, request):
+        return api_reply(str_value="Hi, received ping.", int_value=1)
 
 
 def all_contacts(gd_client):

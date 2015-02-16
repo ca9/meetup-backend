@@ -1,1 +1,8 @@
+Export Client Libraries:
 /Users/aditya/google-cloud-sdk/google-cloud-sdk/platform/google_appengine/endpointscfg.py get_client_lib java -bs gradle api.authentication.UserApi api.data.DataApi --output Android_Client/client_libs
+
+Under Android_Client, unzip libraries and do:
+gradle build
+gradle install - also works, but puts the module in the local maven repository. This doesn't help really.
+
+Place the jars under /build above under /libs/ in the Meetup Android Client app, adjacent src.
