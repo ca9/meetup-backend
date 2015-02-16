@@ -19,8 +19,8 @@ public class firstLoginTask extends AsyncTask<Void, Void, ApiCommonApiReply> {
     UsersApi usersApi;
     ApiAuthenticationFirstLoginMessage firstLoginMessage;
 
-    public firstLoginTask(Context c, UsersApi usersApi, String regID, String fullName, String phNumber) {
-        this(c, usersApi,
+    public firstLoginTask(Context context, UsersApi usersApi, String fullName, String phNumber, String regID) {
+        this(context, usersApi,
                 new ApiAuthenticationFirstLoginMessage().setRegID(regID).setName(fullName).setPhNumber(phNumber));
     }
 
@@ -48,4 +48,9 @@ public class firstLoginTask extends AsyncTask<Void, Void, ApiCommonApiReply> {
         if (reply != null)
             Toast.makeText(context, reply.getStrValue(), Toast.LENGTH_LONG).show();
     }
+
+    public void addTokenToMessage(String token) {
+        firstLoginMessage.setShortLivedAuthorizationToken(token);
+    }
+
 }

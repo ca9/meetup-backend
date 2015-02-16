@@ -24,6 +24,7 @@ import java.util.Collection;
 
 import iiitd.ac.in.dsys.meetup.messages.contactsTask;
 import iiitd.ac.in.dsys.meetup.messages.firstLoginTask;
+import iiitd.ac.in.dsys.meetup.messages.getAuthTokenTask;
 import iiitd.ac.in.dsys.meetup.messages.pingHelloTask;
 
 
@@ -62,7 +63,7 @@ public class MainActivity extends ActionBarActivity {
         setUICallbacks();
 
         // build services. Set the first param to true to test locally. Second param is local IP of server.
-        buildApiServices(false, "192.168.1.6");
+        buildApiServices(true, "192.168.1.6");
     }
 
     private void setUICallbacks() {
@@ -75,14 +76,16 @@ public class MainActivity extends ActionBarActivity {
         ((Button) findViewById(R.id.firstLogin)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                (new firstLoginTask(MainActivity.this, usersApiInst,
-                        "1234",         // Regid
-                        accountEmail,   // Full Name
-                        "9654505022"    // Phone Number
+                (new getAuthTokenTask(MainActivity.this,
+                        accountEmail,
+                        getApplicationContext(),
+                        "9654505022",
+                        "127863871263863",
+                        usersApiInst
                 )).execute();
             }
         });
-        ((Button) findViewById(R.id.contactsButton)).setOnClickListener(new View.OnClickListener() {
+        ((Button) findViewById(R.id.contacts)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 (new contactsTask(MainActivity.this, usersApiInst)).execute();
