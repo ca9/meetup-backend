@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import iiitd.ac.in.dsys.meetup.messages.contactsTask;
 import iiitd.ac.in.dsys.meetup.messages.firstLoginTask;
 import iiitd.ac.in.dsys.meetup.messages.pingHelloTask;
 
@@ -110,8 +111,7 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
         checkPlayServices();
-    }
-
+}
     /**
      * Check the device to make sure it has the Google Play Services APK. If
      * it doesn't, display a dialog that allows users to download the APK from
@@ -244,14 +244,21 @@ public class MainActivity extends ActionBarActivity {
         ((Button) findViewById(R.id.firstLogin)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                (new firstLoginTask(MainActivity.this, usersApiInst,
+               (new firstLoginTask(MainActivity.this, usersApiInst,
                         regid,         // Regid
                         accountEmail,   // Full Name
                         "9654505022"    // Phone Number
                 )).execute();
             }
         });
+        ((Button) findViewById(R.id.contacts)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                (new contactsTask(MainActivity.this, usersApiInst)).execute();
+            }
+        });
     }
+
 
     public void onPing(View v) {
         // Works like a charm.

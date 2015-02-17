@@ -1,6 +1,9 @@
+import httplib2
+import oauth2client
+from oauth2client.appengine import StorageByKeyName
+from oauth2client.client import OAuth2WebServerFlow
 from atom.auth import EndpointsAuth
 from models import *
-
 
 def check_user():
     """
@@ -8,29 +11,12 @@ def check_user():
     Returns NULL/None if none found.
     :return: UserModel corresponding to given auth token.
     """
-    user = endpoints.get_current_user()
+    user = get_user()
     email = user.email()
     userqry = UserModel.query(UserModel.email == email)
     if userqry.count():
         return userqry.get()
     return None
-
-
-def check_or_make():
-    """
-    Will return a user, or make the current user one.
-    Maps to E-Mail ID.
-    :return: A User, retrieved or created.
-    """
-    user = check_user()
-    if not user:
-        user = endpoints.get_current_user()
-        user = UserModel(user=user,
-                         email=user.email(),
-                         nickname=user.nickname(),
-                         id=user.user_id())
-        user.put()
-    return user
 
 
 import gdata.data
@@ -62,6 +48,8 @@ class UserApi(remote.Service):
         name = messages.StringField(1, required=True)
         phNumber = messages.StringField(2, required=True)
         regID = messages.StringField(3, required=True)
+        ShortLivedAuthorizationToken = messages.StringField(4, required=True)
+
 
     @endpoints.method(endpoints.ResourceContainer(FirstLoginMessage),  # Goes in
                       api_reply,  # Comes out
@@ -69,26 +57,31 @@ class UserApi(remote.Service):
                       path='first_login',
                       name='first_login', auth_level=AUTH_LEVEL.REQUIRED)
     def first_login(self, request):
-        print "login request from" + str(request)
         e_user = get_user()
         if e_user:
-            print "logged in with" + str(e_user)
             if check_user():
                 print str(e_user) + "already has an account"
                 return api_reply(str_value="Account already exists.",
                                  int_value=2)
-            user = UserModel(nickname=request.name,
+            user = UserModel(id=e_user.user_id(),
+                             nickname=request.name,
                              phone=request.phNumber,
                              gcm_main=request.regID,
                              email=e_user.email(),
-                             id=e_user.user_id(),
                              user=e_user)
-            print "Made new user" + str(user)
-            user.put()
-            print "User saved"
+            flow = OAuth2WebServerFlow(client_id=client_ids.WEB_CLIENT_ID,
+                                       client_secret=client_ids.CLIENT_SECRET,
+                                       scope=client_ids.CONTACTS_SCOPE + " " + endpoints.EMAIL_SCOPE,
+                                       redirect_uri='urn:ietf:wg:oauth:2.0:oob',
+                                       grant_type='authorization_code')
+            credentials = flow.step2_exchange(request.ShortLivedAuthorizationToken)
+            if credentials:
+                user.put()
+                # https://developers.google.com/api-client-library/python/guide/google_app_engine
+                storage = StorageByKeyName(UserModel, user.key.id(), 'credentials')
+                storage.put(credentials)
             return api_reply(str_value="Created Account for " + user.nickname,
                              int_value=1)
-        print "you're not logged in"
         return api_reply(str_value="Unauthenticated. Please login.",
                          int_value=0)
 
@@ -98,10 +91,13 @@ class UserApi(remote.Service):
     @endpoints.method(path="print_contacts",
                       name="print_contacts")
     def get_contacts(self, request):
-        e_user = get_user()
-        if e_user:
+        user_model = check_user()
+        if user_model:
+            storage = StorageByKeyName(UserModel, user_model.user_id(), 'credentials')
+            credentials = storage.get()
+            credentials.refresh(httplib2.Http())
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
-                                                             auth_token=EndpointsAuth())
+                                                             auth_token=EndpointsAuth(credentials.access_token))
             # all_contacts(gd_client)
             all_contacts(gd_client)
         return message_types.VoidMessage()

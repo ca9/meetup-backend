@@ -1,13 +1,18 @@
 __author__ = 'aditya'
 from common import *
+from oauth2client.appengine import CredentialsNDBProperty
 
 
 class UserModel(EndpointsModel):
     """
-    The default user model.
+    Our user model.
     """
     user = ndb.UserProperty()
     email = ndb.StringProperty(required=True)
+
+    # COUGH COUGH COUGH
+    # https://code.google.com/p/google-api-python-client/issues/detail?id=267
+    credentials = CredentialsNDBProperty()
 
     # Name
     nickname = ndb.StringProperty()
