@@ -1,5 +1,6 @@
 package iiitd.ac.in.dsys.meetup.messages;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -8,6 +9,8 @@ import android.widget.Toast;
 import com.appspot.intense_terra_821.users_api.UsersApi;
 import com.appspot.intense_terra_821.users_api.model.ApiAuthenticationFirstLoginMessage;
 import com.appspot.intense_terra_821.users_api.model.ApiCommonApiReply;
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
 
 import java.io.IOException;
 

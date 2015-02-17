@@ -46,7 +46,7 @@ class UserApi(remote.Service):
     class FirstLoginMessage(messages.Message):
         """ JSON that contains all fields of the first message to the server. """
         name = messages.StringField(1, required=True)
-        phNumber = messages.StringField(2, required=True)
+        phNumber = messages.StringField(2)
         regID = messages.StringField(3, required=True)
         ShortLivedAuthorizationToken = messages.StringField(4, required=True)
 

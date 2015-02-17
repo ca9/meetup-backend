@@ -17,6 +17,9 @@ import android.widget.Toast;
 import com.appspot.intense_terra_821.users_api.UsersApi;
 import com.appspot.intense_terra_821.users_api.UsersApiRequest;
 import com.appspot.intense_terra_821.users_api.UsersApiRequestInitializer;
+import com.appspot.intense_terra_821.users_api.model.ApiCommonApiReply;
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
@@ -31,6 +34,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import iiitd.ac.in.dsys.meetup.messages.contactsTask;
+import iiitd.ac.in.dsys.meetup.messages.firstLoginTask;
 import iiitd.ac.in.dsys.meetup.messages.getAuthTokenTask;
 import iiitd.ac.in.dsys.meetup.messages.pingHelloTask;
 
@@ -85,7 +89,7 @@ public class MainActivity extends ActionBarActivity {
         // add UI Callbacks
         setUICallbacks();
         // build services. Set the first param to true to test locally. Second param is local IP of server.
-        buildApiServices(false, "192.168.1.6");
+        buildApiServices(true, "192.168.1.6");
 
         // Check device for Play Services APK.
         if (checkPlayServices()) {
@@ -303,6 +307,27 @@ public class MainActivity extends ActionBarActivity {
                         Toast.makeText(getBaseContext(), "Logged in with : " + credential.getSelectedAccountName(), Toast.LENGTH_SHORT).show();
                     }
                 }
+                break;
+            case REQUEST_CODE_RECOVER_FROM_PLAY_SERVICES_ERROR:
+                // Android, you ugly, ugly piece of turd.
+                (new AsyncTask<Void, Void, String>() {
+                    @Override
+                    protected String doInBackground(Void... params) {
+                        String ShortLivedAuthorizationToken = null;
+                        try {
+                            ShortLivedAuthorizationToken = GoogleAuthUtil.getToken(MainActivity.this, accountEmail, getAuthTokenTask.mScope);
+                        } catch (Exception e) {};
+                        return ShortLivedAuthorizationToken;
+                    }
+                    @Override
+                    protected void onPostExecute(String ShortLivedAuthorizationToken) {
+                        if (regid != null && ShortLivedAuthorizationToken != null) {
+                            firstLoginTask aLoginTask = new firstLoginTask(getApplicationContext(), usersApiInst, accountEmail, "00000000", regid);
+                            aLoginTask.addTokenToMessage(ShortLivedAuthorizationToken);
+                            aLoginTask.execute();
+                        }
+                    }
+                }).execute();
                 break;
         }
     }
