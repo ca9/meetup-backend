@@ -18,6 +18,7 @@ public class firstLoginTask extends AsyncTask<Void, Void, ApiCommonApiReply> {
     Context context;
     UsersApi usersApi;
     ApiAuthenticationFirstLoginMessage firstLoginMessage;
+    String TAG="MainActivity";
 
     public firstLoginTask(Context c, UsersApi usersApi, String regID, String fullName, String phNumber) {
         this(c, usersApi,
@@ -37,7 +38,7 @@ public class firstLoginTask extends AsyncTask<Void, Void, ApiCommonApiReply> {
             UsersApi.FirstLogin aRequest = usersApi.firstLogin(firstLoginMessage);
             aRequest.execute();
         } catch (IOException e) {
-            Log.d("Meetup", e.getMessage(), e);
+            Log.d(TAG, e.getMessage(), e);
             e.printStackTrace();
         }
         return reply;
