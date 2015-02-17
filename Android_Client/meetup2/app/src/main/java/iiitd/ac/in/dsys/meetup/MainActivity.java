@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import iiitd.ac.in.dsys.meetup.messages.contactsTask;
-import iiitd.ac.in.dsys.meetup.messages.firstLoginTask;
+import iiitd.ac.in.dsys.meetup.messages.getAuthTokenTask;
 import iiitd.ac.in.dsys.meetup.messages.pingHelloTask;
 
 
@@ -66,9 +66,6 @@ public class MainActivity extends ActionBarActivity {
     private String accountEmail;
     private static final int REQUEST_ACCOUNT_PICKER = 2;
     public static final String WEB_CLIENT_ID = "812458715891-p8e6e4oqph65matkdr1v06r02vtri1du.apps.googleusercontent.com";
-    // Unused
-    public static final String ANDROID_CLIENT_ID = "812458715891-cd592i6lgul160gf15ma2tbb1oj4k4k2.apps.googleusercontent.com";
-
 
     // Scopes
     public static final String EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
@@ -244,10 +241,12 @@ public class MainActivity extends ActionBarActivity {
         ((Button) findViewById(R.id.firstLogin)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               (new firstLoginTask(MainActivity.this, usersApiInst,
-                        regid,         // Regid
-                        accountEmail,   // Full Name
-                        "9654505022"    // Phone Number
+                (new getAuthTokenTask(MainActivity.this,
+                        accountEmail,
+                        getApplicationContext(),
+                        "0000000000",
+                        regid,
+                        usersApiInst
                 )).execute();
             }
         });
