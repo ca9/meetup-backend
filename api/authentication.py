@@ -133,6 +133,23 @@ class UserApi(remote.Service):
             return response
         return ProfileMessage(success=False)
 
+    @endpoints.method(message_types.VoidMessage,
+                      FriendsMessageInd,
+                      http_method="GET",
+                      path="get_pending_adds",
+                      name="get_pending_adds",
+                      auth_level=AUTH_LEVEL.REQUIRED)
+    def get_pending_adds(self, request):
+        user = check_user()
+        if user:
+            added_me = UserModel.query(UserModel.friends == user.key).fetch(20)
+            response = []
+            for friend in added_me:
+                if friend.key not in user.friends:
+                    response.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname))
+            return FriendsMessageInd(profiles=response)
+        return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="Not connected", nickname="Not connected")])
+
     @endpoints.method(endpoints.ResourceContainer(email=messages.StringField(1, required=True),
                                                   add=messages.BooleanField(2, required=True, default=True)),
                       api_reply,

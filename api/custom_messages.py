@@ -50,5 +50,8 @@ class ProfileMessage(messages.Message):
     success = messages.BooleanField(7, required=True)
 
 
+class FriendsMessageInd(messages.Message):
+    profiles = messages.MessageField(ProfileMessage.FriendMessage, 1, repeated=True)
+
 class dummyUsers(messages.Message):
     created = messages.StringField(1, repeated=True)
