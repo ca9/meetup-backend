@@ -5,17 +5,31 @@ from oauth2client.client import OAuth2WebServerFlow
 from atom.auth import EndpointsAuth
 from models import *
 
+
+from endpoints import AUTH_LEVEL
+import endpoints
+import client_ids
+import os
+import json
+from protorpc import remote
+import time
+
+
 def check_user():
     """
     Checks if a UserModel exists against current OAuth token.
     Returns NULL/None if none found.
     :return: UserModel corresponding to given auth token.
+    :rtype: UserModel
     """
-    user = get_user()
-    email = user.email()
-    userqry = UserModel.query(UserModel.email == email)
-    if userqry.count():
-        return userqry.get()
+    try:
+        user = get_user()
+        email = user.email()
+        userqry = UserModel.query(UserModel.email == email)
+        if userqry.count():
+            return userqry.get()
+    except Exception as e:
+        print e.args, e.message
     return None
 
 
@@ -40,17 +54,6 @@ class UserApi(remote.Service):
     All the API endponts for User Accounts for Meetup - WayHome app.
     """
 
-    # Important Note: For concealed post messages (request body), we need to include a
-    # messages.Message object that is well defined (serving as a jsondict). This is
-    # encapsulated in a ResourceContainer.
-    class FirstLoginMessage(messages.Message):
-        """ JSON that contains all fields of the first message to the server. """
-        name = messages.StringField(1, required=True)
-        phNumber = messages.StringField(2)
-        regID = messages.StringField(3, required=True)
-        ShortLivedAuthorizationToken = messages.StringField(4, required=True)
-
-
     @endpoints.method(endpoints.ResourceContainer(FirstLoginMessage),  # Goes in
                       api_reply,  # Comes out
                       http_method='POST',
@@ -58,6 +61,7 @@ class UserApi(remote.Service):
                       name='first_login', auth_level=AUTH_LEVEL.REQUIRED)
     def first_login(self, request):
         e_user = get_user()
+        # Only time get_user is directly called, check_user is bypassed. Check_user checks DB.
         if e_user:
             if check_user():
                 print str(e_user) + "already has an account"
@@ -84,6 +88,44 @@ class UserApi(remote.Service):
                              int_value=1)
         return api_reply(str_value="Unauthenticated. Please login.",
                          int_value=0)
+
+    @endpoints.method(endpoints.ResourceContainer(value=messages.StringField(1, required=True),
+                                                  item=messages.StringField(2, required=True)),
+                      api_reply,
+                      http_method="GET",
+                      path="change_item",
+                      name="change_item", auth_level=AUTH_LEVEL.REQUIRED)
+    def change_name(self, request):
+        user = check_user()
+        if user:
+            if request.item == "nickname":
+                user.update_name(request.value)
+                user.put()
+            elif request.item == "phone":
+                user.phone = request.value
+                user.put()
+            else:
+                return api_reply(str_value="Cannot access " + request.item)
+            return api_reply(str_value=request.item + " changed to " + request.value, int_value=1)
+        return api_reply(str_value="Not connected/No account found.")
+
+
+    @endpoints.method(message_types.VoidMessage, ProfileMessage,
+                      path="get_profile",
+                      name="get_profile",
+                      auth_level=AUTH_LEVEL.REQUIRED)
+    def get_profile(self, request):
+        user = check_user()
+        if user:
+            response = ProfileMessage(success=True,
+                                           nickname=user.nickname,
+                                           phone=user.phone,
+                                           email=user.email,
+                                           created=user.created)
+            friends_list = ndb.get_multi(user.friends)
+            meetups_list = ndb.get_multi(user.meetups)
+            return response
+        return ProfileMessage(success=False)
 
 
     # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
@@ -151,7 +193,8 @@ def all_contacts(gd_client):
 # https://code.google.com/p/googleappengine/issues/detail?id=8848
 # https://code.google.com/p/googleappengine/issues/detail?id=10753
 def get_user():
-    """A workaround implementation for getting user."""
+    """A workaround implementation for getting user.
+    """
     auth = os.getenv('HTTP_AUTHORIZATION')
     bearer, token = auth.split()
     token_type = 'id_token'
@@ -172,8 +215,10 @@ def get_user():
         else:
             time.sleep(wait)
             wait += i
-    return users.User(
+    ret_user = users.User(
         email=user['email'],
-        federated_provider=user['issuer'],
         _user_id=user['user_id']
     )
+    if "issuer" in user:
+        ret_user.__federated_identity = user['issuer']
+    return ret_user

@@ -1,0 +1,47 @@
+__author__ = 'aditya'
+
+from protorpc import messages, message_types
+
+class api_reply(messages.Message):
+    """
+    A standard reply. Because Proto_RPC. Yay.
+    """
+    str_value = messages.StringField(1)
+    int_value = messages.IntegerField(2)
+
+
+# Important Note: For concealed post messages (request body), we need to include a
+# messages.Message object that is well defined (serving as a jsondict). This is
+# encapsulated in a ResourceContainer.
+class FirstLoginMessage(messages.Message):
+    """ JSON that contains all fields of the first message to the server. """
+    name = messages.StringField(1, required=True)
+    phNumber = messages.StringField(2)
+    regID = messages.StringField(3, required=True)
+    ShortLivedAuthorizationToken = messages.StringField(4, required=True)
+
+
+# All profile information for user.
+class ProfileMessage(messages.Message):
+    """ JSON containing all profile information of the current user. """
+
+    class FriendMessage(messages.Message):
+        """ JSON containing all information about friends visible to a user """
+        email = messages.StringField(1)
+        name = messages.StringField(2)
+        mutual = messages.StringField(3)
+
+    class MeetupMessage(messages.Message):
+        """ Json containing all information about a user's Meetups """
+        meetup = messages.StringField(1)
+        created = message_types.DateTimeField(2)
+
+    nickname = messages.StringField(1)
+    phone = messages.StringField(2)
+    email = messages.StringField(3)
+    friends = messages.MessageField(FriendMessage, 4, repeated=True)
+    meetups = messages.MessageField(MeetupMessage, 5, repeated=True)
+    created = message_types.DateTimeField(6)
+    success = messages.BooleanField(7, required=True)
+
+
