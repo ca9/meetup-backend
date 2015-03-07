@@ -1,10 +1,11 @@
-import httplib2
+import httplib2, random
+from endpoints_proto_datastore.ndb import EndpointsUserProperty
 import oauth2client
 from oauth2client.appengine import StorageByKeyName
 from oauth2client.client import OAuth2WebServerFlow
 from atom.auth import EndpointsAuth
 from models import *
-
+from uuid import *
 
 from endpoints import AUTH_LEVEL
 import endpoints
@@ -71,8 +72,7 @@ class UserApi(remote.Service):
                              nickname=request.name,
                              phone=request.phNumber,
                              gcm_main=request.regID,
-                             email=e_user.email(),
-                             user=e_user)
+                             email=e_user.email())
             flow = OAuth2WebServerFlow(client_id=client_ids.WEB_CLIENT_ID,
                                        client_secret=client_ids.CLIENT_SECRET,
                                        scope=client_ids.CONTACTS_SCOPE + " " + endpoints.EMAIL_SCOPE,
@@ -86,8 +86,7 @@ class UserApi(remote.Service):
                 storage.put(credentials)
             return api_reply(str_value="Created Account for " + user.nickname,
                              int_value=1)
-        return api_reply(str_value="Unauthenticated. Please login.",
-                         int_value=0)
+        return no_user()
 
     @endpoints.method(endpoints.ResourceContainer(value=messages.StringField(1, required=True),
                                                   item=messages.StringField(2, required=True)),
@@ -107,10 +106,10 @@ class UserApi(remote.Service):
             else:
                 return api_reply(str_value="Cannot access " + request.item)
             return api_reply(str_value=request.item + " changed to " + request.value, int_value=1)
-        return api_reply(str_value="Not connected/No account found.")
+        return no_user()
 
 
-    @endpoints.method(message_types.VoidMessage, ProfileMessage,
+    @endpoints.method(message_types.VoidMessage, ProfileMessage, http_method="GET",
                       path="get_profile",
                       name="get_profile",
                       auth_level=AUTH_LEVEL.REQUIRED)
@@ -118,15 +117,68 @@ class UserApi(remote.Service):
         user = check_user()
         if user:
             response = ProfileMessage(success=True,
-                                           nickname=user.nickname,
-                                           phone=user.phone,
-                                           email=user.email,
-                                           created=user.created)
-            friends_list = ndb.get_multi(user.friends)
-            meetups_list = ndb.get_multi(user.meetups)
+                                      nickname=user.nickname,
+                                      phone=user.phone,
+                                      email=user.email,
+                                      created=user.created)
+            friends_list, friends = ndb.get_multi(user.friends), []
+            for friend in friends_list:
+                friends.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname,
+                                                            mutual=user.check_mutual(friend)))
+            meetups_list, meetups = ndb.get_multi(user.meetups), []
+            for meetup in meetups_list:
+                meetups.append(ProfileMessage.MeetupMessage(name=meetup.name, created=meetup.created))
+            response.friends = friends
+            response.meetups = meetups
             return response
         return ProfileMessage(success=False)
 
+    @endpoints.method(endpoints.ResourceContainer(email=messages.StringField(1, required=True),
+                                                  add=messages.BooleanField(2, required=True, default=True)),
+                      api_reply,
+                      http_method="GET", name="add_remove_friend_by_email", path="add_remove_friend_by_email",
+                      auth_level=AUTH_LEVEL.REQUIRED)
+    def add_remove_friend_by_email(self, request):
+        user = check_user()
+        if user:
+            if request.add:
+                success = user.add_friend_from_email(request.email)
+                if success:
+                    return api_reply(str_value=request.email + " added as friend!")
+            else:
+                success = user.remove_friend_from_email(request.email)
+                if success:
+                    return api_reply(str_value=request.email + " removed as friend!")
+            return api_reply(str_value=request.email + " not found!")
+        return no_user()
+
+
+    @endpoints.method(message_types.VoidMessage, dummyUsers,
+                      auth_level=AUTH_LEVEL.REQUIRED, name='create_dummies', path="create_dummies")
+    def create_dummies(self, request):
+        user = check_user()
+        boss = "Aditya11009@iiitd.ac.in"
+        if user and user.email == boss:
+            n1 = ('woody', 'buzz', 'jessie', 'rex', 'potato', 'sid')
+            n2 = ('walle', 'eve', 'axiom', 'captain', 'beta')
+            n3 = ('aldrin', 'mik', 'jagger', 'romeo', 'charlie')
+            emails = []
+            for i in range(5):
+                name = '-'.join([random.choice(n1), random.choice(n2), random.choice(n3)])
+                emails.append(name + "@example.com")
+                dummy = UserModel(id=emails[i], nickname=name,
+                                  phone=str(int(random.random() * (10 ** 10))),
+                                  gcm_main=str(uuid4()),
+                                  email=emails[i])
+                dummy.put()
+                if random.random() > 0.5:
+                    dummy.friends.append(user.key)
+                if random.random() > 0.5:
+                    user.friends.append(dummy.key)
+                user.put()
+                dummy.put()
+            return dummyUsers(created=emails)
+        return dummyUsers(created=["Unauthenticated"])
 
     # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
     # Make endpoints_auth with that token.

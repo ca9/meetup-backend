@@ -6,11 +6,11 @@ from google.appengine.ext import ndb
 from google.appengine.api import oauth, users, urlfetch
 from endpoints_proto_datastore.ndb import EndpointsModel
 
+
 class UserModel(EndpointsModel):
     """
     Our user model.
     """
-    user = ndb.UserProperty()
     email = ndb.StringProperty(required=True)
 
     # COUGH COUGH COUGH
@@ -51,12 +51,30 @@ class UserModel(EndpointsModel):
     # Friends
     friends = ndb.KeyProperty(repeated=True, kind='UserModel')  # NDB Hack. No other way.
 
-    def add_friend(self, friend):
-        if friend not in self.friends:
+    def add_friend_from_email(self, email):
+        friend = UserModel.query_method(UserModel.email == email).get()
+        if friend and friend not in self.friends:
             self.friends.append(friend)
             self.put()
-            return self.friends
-        return
+            return True
+        return False
+
+    def remove_friend_from_email(self, email):
+        friend = UserModel.query_method(UserModel.email == email).get()
+        if friend and friend in self.friends:
+            self.friends.remove(friend)
+            self.put()
+            return True
+        return False
+
+    def check_mutual(self, friend):
+        """
+        :type friend: UserModel
+        :rtype: bool
+        """
+        if self.key in friend.friends and friend.key in self.friends:
+            return True
+        return False
 
 
 class UserLocationMeetup(EndpointsModel):
@@ -64,6 +82,7 @@ class UserLocationMeetup(EndpointsModel):
     locations = ndb.GeoPtProperty(repeated=True)
     last_location = ndb.GeoPtProperty()
     last_update = ndb.DateTimeProperty(auto_now=True)
+
 
 class Meetup(EndpointsModel):
     created = ndb.DateTimeProperty(auto_now_add=True)

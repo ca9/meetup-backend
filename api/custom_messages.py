@@ -2,6 +2,11 @@ __author__ = 'aditya'
 
 from protorpc import messages, message_types
 
+
+def no_user():
+    return api_reply(str_value="Not connected/No account found.")
+
+
 class api_reply(messages.Message):
     """
     A standard reply. Because Proto_RPC. Yay.
@@ -28,12 +33,12 @@ class ProfileMessage(messages.Message):
     class FriendMessage(messages.Message):
         """ JSON containing all information about friends visible to a user """
         email = messages.StringField(1)
-        name = messages.StringField(2)
-        mutual = messages.StringField(3)
+        nickname = messages.StringField(2)
+        mutual = messages.BooleanField(3)
 
     class MeetupMessage(messages.Message):
         """ Json containing all information about a user's Meetups """
-        meetup = messages.StringField(1)
+        name = messages.StringField(1)
         created = message_types.DateTimeField(2)
 
     nickname = messages.StringField(1)
@@ -45,3 +50,5 @@ class ProfileMessage(messages.Message):
     success = messages.BooleanField(7, required=True)
 
 
+class dummyUsers(messages.Message):
+    created = messages.StringField(1, repeated=True)
