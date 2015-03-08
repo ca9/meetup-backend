@@ -189,7 +189,8 @@ class UserApi(remote.Service):
                       auth_level=AUTH_LEVEL.REQUIRED, name='create_dummies', path="create_dummies")
     def create_dummies(self, request):
         user = check_user()
-        if user and user.email in developers:
+        print user.email.lower(), developers
+        if user and user.email.lower() in developers:
             n1 = ('woody', 'buzz', 'jessie', 'rex', 'potato', 'sid')
             n2 = ('walle', 'eve', 'axiom', 'captain', 'beta')
             n3 = ('aldrin', 'mik', 'jagger', 'romeo', 'charlie')
