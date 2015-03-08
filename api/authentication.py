@@ -16,6 +16,8 @@ from protorpc import remote
 import time
 
 
+developers = ("aditya11009@iiitd.ac.in", "vedant12118@iiitd.ac.in", "shubham12101@iiitd.ac.in")
+
 def check_user():
     """
     Checks if a UserModel exists against current OAuth token.
@@ -94,14 +96,14 @@ class UserApi(remote.Service):
                       http_method="GET",
                       path="change_item",
                       name="change_item", auth_level=AUTH_LEVEL.REQUIRED)
-    def change_name(self, request):
+    def change_item(self, request):
         user = check_user()
         if user:
             if request.item == "nickname":
                 user.update_name(request.value)
                 user.put()
             elif request.item == "phone":
-                user.phone = request.value
+                user.phone = request.value.replace(" ", "").replace("-", '')
                 user.put()
             else:
                 return api_reply(str_value="Cannot access " + request.item)
@@ -141,7 +143,7 @@ class UserApi(remote.Service):
     def get_pending_adds(self, request):
         user = check_user()
         if user:
-            added_me = UserModel.query(UserModel.friends == user.key).fetch(20)
+            added_me = UserModel.query(UserModel.friends == user.key).fetch()
             response = []
             for friend in added_me:
                 if friend.key not in user.friends:
@@ -187,8 +189,7 @@ class UserApi(remote.Service):
                       auth_level=AUTH_LEVEL.REQUIRED, name='create_dummies', path="create_dummies")
     def create_dummies(self, request):
         user = check_user()
-        boss = "Aditya11009@iiitd.ac.in"
-        if user and user.email == boss:
+        if user and user.email in developers:
             n1 = ('woody', 'buzz', 'jessie', 'rex', 'potato', 'sid')
             n2 = ('walle', 'eve', 'axiom', 'captain', 'beta')
             n3 = ('aldrin', 'mik', 'jagger', 'romeo', 'charlie')
@@ -210,12 +211,13 @@ class UserApi(remote.Service):
             return UserEmailList(emails=emails)
         return UserEmailList(emails=["Unauthenticated"])
 
-    # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
-    # GDATA IS DEPRECATED.
-    # Make endpoints_auth with that token.
-    @endpoints.method(path="print_contacts",
-                      name="print_contacts")
+
+    @endpoints.method(response_message=UserEmailList,
+                      path="get_contacts",
+                      name="get_contacts")
     def get_contacts(self, request):
+        """ Returns (email list of) people you may know on Meetup (from google contacts).
+        """
         user_model = check_user()
         if user_model:
             storage = StorageByKeyName(UserModel, user_model.key.id(), 'credentials')
@@ -224,8 +226,9 @@ class UserApi(remote.Service):
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
                                                              auth_token=GDataAuth(credentials.access_token))
             # all_contacts(gd_client)
-            all_contacts(gd_client)
-        return message_types.VoidMessage()
+            friends_on_meetup = [friend.email for friend in find_users(gd_client)]
+            return UserEmailList(emails=friends_on_meetup)
+        return UserEmailList(emails=['Unauthenticated'])
 
     @endpoints.method(message_types.VoidMessage,
                       api_reply,
@@ -234,6 +237,32 @@ class UserApi(remote.Service):
                       name="ping_hello")
     def hello_ping(self, request):
         return api_reply(str_value="Hi, received ping.", int_value=1)
+
+
+def find_users(gd_client):
+    query = gdata.contacts.client.ContactsQuery()
+    query.max_results = 1000
+    feed = gd_client.GetContacts(q=query)
+    contacts, snumbers, semails = [], [], []
+    for i, entry in enumerate(feed.entry):
+        name, numbers, emails = "", [], []
+        try:
+            if entry.name:
+                name = entry.name.full_name.text
+            for email in entry.email:
+                emails.append(email.address)
+                semails.append(email.address)
+            for number in entry.phone_number:
+                    form_num = str(number.text).replace(" ", "").replace("-", '')
+                    numbers.append(form_num)
+                    snumbers.append(form_num)
+            if len(emails) or len(numbers):
+                contacts.append((name, numbers, emails))
+        except Exception as e:
+            print e
+    match_numbers = UserModel.query(UserModel.phone.IN(snumbers)).fetch()
+    match_emails = UserModel.query(UserModel.email.IN(semails)).fetch()
+    return match_emails + match_numbers
 
 
 def all_contacts(gd_client):
