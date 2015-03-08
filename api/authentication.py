@@ -49,7 +49,7 @@ import gdata.contacts.data
                scopes=[  # Get email and Details
                          endpoints.EMAIL_SCOPE,
                          # Get Contacts
-                         client_ids.CONTACTS_SCOPE2],
+                         client_ids.CONTACTS_SCOPE, client_ids.CONTACTS_SCOPE2],
                allowed_client_ids=client_ids.allowed_client_ids,
                auth_level=AUTH_LEVEL.REQUIRED)
 class UserApi(remote.Service):

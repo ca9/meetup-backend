@@ -6,3 +6,5 @@ gradle build
 gradle install - also works, but puts the module in the local maven repository. This doesn't help really.
 
 Place the jars under /build above under /libs/ in the Meetup Android Client app, adjacent src.
+
+F:\gradle-2.3\bin\gradle build
