@@ -66,3 +66,13 @@ class EndpointsAuth(object):
         http_request.headers['Authorization'] = self.bearer
 
     ModifyRequest = modify_request
+
+
+class GDataAuth(EndpointsAuth):
+
+    def __init__(self, token):
+        super(GDataAuth, self).__init__(token)
+
+    def modify_request(self, http_request):
+        http_request.headers['Authorization'] = "Bearer " + self.bearer
+        http_request.headers['GData-Version'] = "3.0"

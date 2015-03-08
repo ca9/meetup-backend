@@ -3,7 +3,7 @@ from endpoints_proto_datastore.ndb import EndpointsUserProperty
 import oauth2client
 from oauth2client.appengine import StorageByKeyName
 from oauth2client.client import OAuth2WebServerFlow
-from atom.auth import EndpointsAuth
+from atom.auth import EndpointsAuth, GDataAuth
 from models import *
 from uuid import *
 
@@ -47,7 +47,7 @@ import gdata.contacts.data
                scopes=[  # Get email and Details
                          endpoints.EMAIL_SCOPE,
                          # Get Contacts
-                         client_ids.CONTACTS_SCOPE],
+                         client_ids.CONTACTS_SCOPE2],
                allowed_client_ids=client_ids.allowed_client_ids,
                auth_level=AUTH_LEVEL.REQUIRED)
 class UserApi(remote.Service):
@@ -210,22 +210,22 @@ class UserApi(remote.Service):
             return UserEmailList(emails=emails)
         return UserEmailList(emails=["Unauthenticated"])
 
-    # # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
+    # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
     # GDATA IS DEPRECATED.
-    # # Make endpoints_auth with that token.
-    # @endpoints.method(path="print_contacts",
-    #                   name="print_contacts")
-    # def get_contacts(self, request):
-    #     user_model = check_user()
-    #     if user_model:
-    #         storage = StorageByKeyName(UserModel, user_model.key.id(), 'credentials')
-    #         credentials = storage.get()
-    #         credentials.refresh(httplib2.Http())
-    #         gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
-    #                                                          auth_token=EndpointsAuth(credentials.access_token))
-    #         # all_contacts(gd_client)
-    #         all_contacts(gd_client)
-    #     return message_types.VoidMessage()
+    # Make endpoints_auth with that token.
+    @endpoints.method(path="print_contacts",
+                      name="print_contacts")
+    def get_contacts(self, request):
+        user_model = check_user()
+        if user_model:
+            storage = StorageByKeyName(UserModel, user_model.key.id(), 'credentials')
+            credentials = storage.get()
+            credentials.refresh(httplib2.Http())
+            gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
+                                                             auth_token=GDataAuth(credentials.access_token))
+            # all_contacts(gd_client)
+            all_contacts(gd_client)
+        return message_types.VoidMessage()
 
     @endpoints.method(message_types.VoidMessage,
                       api_reply,
