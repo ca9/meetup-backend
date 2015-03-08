@@ -53,5 +53,6 @@ class ProfileMessage(messages.Message):
 class FriendsMessageInd(messages.Message):
     profiles = messages.MessageField(ProfileMessage.FriendMessage, 1, repeated=True)
 
-class dummyUsers(messages.Message):
-    created = messages.StringField(1, repeated=True)
+
+class UserEmailList(messages.Message):
+    emails = messages.StringField(1, repeated=True)

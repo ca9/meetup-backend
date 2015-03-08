@@ -109,7 +109,7 @@ class UserApi(remote.Service):
         return no_user()
 
 
-    @endpoints.method(message_types.VoidMessage, ProfileMessage, http_method="GET",
+    @endpoints.method(response_message=ProfileMessage, http_method="GET",
                       path="get_profile",
                       name="get_profile",
                       auth_level=AUTH_LEVEL.REQUIRED)
@@ -133,8 +133,7 @@ class UserApi(remote.Service):
             return response
         return ProfileMessage(success=False)
 
-    @endpoints.method(message_types.VoidMessage,
-                      FriendsMessageInd,
+    @endpoints.method(response_message = FriendsMessageInd,
                       http_method="GET",
                       path="get_pending_adds",
                       name="get_pending_adds",
@@ -169,8 +168,22 @@ class UserApi(remote.Service):
             return api_reply(str_value=request.email + " not found!")
         return no_user()
 
+    @endpoints.method(FriendsMessageInd,
+                      api_reply, http_method="POST", name="bulk_add", path="bulk_add")
+    def add_friends_bulk(self, request):
+        """
+        :type request: FriendsMessageInd
+        """
+        user = check_user()
+        if user:
+            response = api_reply(int_value = 1)
+            for friend_message in request.profiles:
+                response.str_value += user.add_friend_from_email(friend_message.email) + ", "
+            return response
+        return no_user()
 
-    @endpoints.method(message_types.VoidMessage, dummyUsers,
+
+    @endpoints.method(response_message = UserEmailList,
                       auth_level=AUTH_LEVEL.REQUIRED, name='create_dummies', path="create_dummies")
     def create_dummies(self, request):
         user = check_user()
@@ -194,24 +207,25 @@ class UserApi(remote.Service):
                     user.friends.append(dummy.key)
                 user.put()
                 dummy.put()
-            return dummyUsers(created=emails)
-        return dummyUsers(created=["Unauthenticated"])
+            return UserEmailList(emails=emails)
+        return UserEmailList(emails=["Unauthenticated"])
 
-    # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
-    # Make endpoints_auth with that token.
-    @endpoints.method(path="print_contacts",
-                      name="print_contacts")
-    def get_contacts(self, request):
-        user_model = check_user()
-        if user_model:
-            storage = StorageByKeyName(UserModel, user_model.user_id(), 'credentials')
-            credentials = storage.get()
-            credentials.refresh(httplib2.Http())
-            gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
-                                                             auth_token=EndpointsAuth(credentials.access_token))
-            # all_contacts(gd_client)
-            all_contacts(gd_client)
-        return message_types.VoidMessage()
+    # # Todo: This takes a token different from the endpoints token (under HTTP_AUTH). Make it a POST.
+    # GDATA IS DEPRECATED.
+    # # Make endpoints_auth with that token.
+    # @endpoints.method(path="print_contacts",
+    #                   name="print_contacts")
+    # def get_contacts(self, request):
+    #     user_model = check_user()
+    #     if user_model:
+    #         storage = StorageByKeyName(UserModel, user_model.key.id(), 'credentials')
+    #         credentials = storage.get()
+    #         credentials.refresh(httplib2.Http())
+    #         gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
+    #                                                          auth_token=EndpointsAuth(credentials.access_token))
+    #         # all_contacts(gd_client)
+    #         all_contacts(gd_client)
+    #     return message_types.VoidMessage()
 
     @endpoints.method(message_types.VoidMessage,
                       api_reply,
