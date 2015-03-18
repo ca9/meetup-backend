@@ -50,7 +50,7 @@ class UserModel(EndpointsModel):
     friends = ndb.KeyProperty(repeated=True, kind='UserModel')  # NDB Hack. No other way.
 
     def add_friend_from_email(self, email):
-        friend = UserModel.query_method(UserModel.email == email).get()
+        friend = UserModel.query(UserModel.email == email).get()
         if friend and friend not in self.friends:
             self.friends.append(friend)
             self.put()
@@ -61,7 +61,7 @@ class UserModel(EndpointsModel):
         return False
 
     def remove_friend_from_email(self, email):
-        friend = UserModel.query_method(UserModel.email == email).get()
+        friend = UserModel.query(UserModel.email == email).get()
         if friend and friend in self.friends:
             self.friends.remove(friend)
             self.put()
@@ -88,8 +88,6 @@ class UserModel(EndpointsModel):
         return True
 
 
-
-
 class UserLocationMeetup(EndpointsModel):
     user = ndb.KeyProperty(kind="UserModel", required=True)
     locations = ndb.GeoPtProperty(repeated=True)
@@ -99,10 +97,11 @@ class UserLocationMeetup(EndpointsModel):
 
 class Meetup(EndpointsModel):
     created = ndb.DateTimeProperty(auto_now_add=True)
+    time_to_arrive = ndb.DateTimeProperty()
     name = ndb.StringProperty(required=True)
     active = ndb.BooleanProperty(required=True, default=True)
     owner = ndb.KeyProperty(kind='UserModel', required=True)
-    destination = ndb.GeoPtProperty()
+    destination = ndb.GeoPtProperty(required=True)
     invited_peeps = ndb.KeyProperty(kind="UserModel", repeated=True)
     # Has all the peeps and their locations.
     peeps = ndb.KeyProperty(kind="UserLocationMeetup", repeated=True)

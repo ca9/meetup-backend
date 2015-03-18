@@ -7,7 +7,7 @@ def no_user():
     """
     :rtype: SuccessMessage
     """
-    return SuccessMessage(str_value="Not connected/No account found.")
+    return SuccessMessage(str_value="Not connected/No account found.", int_value=0)
 
 
 def success():
@@ -25,6 +25,13 @@ class SuccessMessage(messages.Message):
     int_value = messages.IntegerField(2, default=0)
 
 
+class MeetupMessage(messages.Message):
+    """ Json containing Meetup Description """
+    name = messages.StringField(1, required=True)
+    owner = messages.StringField(2, required=True)
+    created = message_types.DateTimeField(3)
+
+
 # All profile information for user.
 class ProfileMessage(messages.Message):
     """ JSON containing all profile information of the current user. """
@@ -36,11 +43,6 @@ class ProfileMessage(messages.Message):
         nickname = messages.StringField(2)
         # mutual = messages.BooleanField(3)
 
-    class MeetupMessage(messages.Message):
-        """ Json containing all information about a user's Meetups """
-        name = messages.StringField(1)
-        created = message_types.DateTimeField(2)
-
     nickname = messages.StringField(2)
     phone = messages.StringField(3)
     email = messages.StringField(4)
@@ -48,12 +50,31 @@ class ProfileMessage(messages.Message):
     meetups = messages.MessageField(MeetupMessage, 6, repeated=True)
     created = message_types.DateTimeField(7)
     home_lat = messages.FloatField(8)
-    home_long = messages.FloatField(9)
+    home_lon = messages.FloatField(9)
 
 
 class FriendsProfilesMessage(messages.Message):
     success = messages.MessageField(SuccessMessage, 1, required=True)
     profiles = messages.MessageField(ProfileMessage.FriendMessage, 2, repeated=True)
+
+
+class MeetupDescMessage(messages.Message):
+    """ Describes a Meetup.
+    """
+    owner = messages.StringField(1, required=True)
+    name = messages.StringField(2, required=True)
+    pending = messages.MessageField(ProfileMessage.FriendMessage, 3, repeated=True)
+    accepted = messages.MessageField(ProfileMessage.FriendMessage, 4, repeated=True)
+    lon_destination = messages.FloatField(5)
+    lat_destination = messages.FloatField(6)
+    success = messages.MessageField(SuccessMessage, 7, required=True)
+    time_to_arrive = message_types.DateTimeField(8)
+
+
+class MeetupListMessage(messages.Message):
+    """ List of meetups. """
+    success = messages.MessageField(SuccessMessage, 1, required=True)
+    meetups = messages.MessageField(MeetupMessage, 2, repeated=True)
 
 ##################################
 """
@@ -79,5 +100,26 @@ class UpUserEmailsMessage(messages.Message):
 
 class UpLocationMessage(messages.Message):
     lat = messages.FloatField(1, required=True)
-    long = messages.FloatField(2, required=True)
+    lon = messages.FloatField(2, required=True)
     time = message_types.DateTimeField(3)
+
+
+class UpMeetupCreateMessage(messages.Message):
+    name = messages.StringField(1, required=True)
+    lat = messages.FloatField(2, required=True)
+    lon = messages.FloatField(3, required=True)
+
+    invited = messages.StringField(4, repeated=True)  # Can't be required.
+    timeToArrive = message_types.DateTimeField(5)
+
+
+class UpMeetupMessageSmall(messages.Message):
+    owner = messages.StringField(1, required=True)
+    name = messages.StringField(2, required=True)
+
+
+##################################
+"""
+End of upstream messages.
+"""
+##################################

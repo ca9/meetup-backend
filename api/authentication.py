@@ -71,7 +71,7 @@ class UserApi(remote.Service):
                 print str(e_user) + "already has an account"
                 return SuccessMessage(str_value="Account already exists.",
                                       int_value=2)
-            user = UserModel(id=e_user.user_id(),
+            user = UserModel(id=e_user.email(),
                              nickname=request.name,
                              phone=request.phNumber,
                              gcm_main=request.regID,
@@ -123,14 +123,14 @@ class UserApi(remote.Service):
                                       email=user.email,
                                       created=user.created)
             if user.home:
-                response.home_lat, response.home_long = user.home.lat, user.home.lon
+                response.home_lat, response.home_lon = user.home.lat, user.home.lon
             friends_list, friends = ndb.get_multi(user.friends), []
             for friend in friends_list:
                 friends.append(ProfileMessage.FriendMessage(email=friend.email,
                                                             nickname=friend.nickname))
             meetups_list, meetups = ndb.get_multi(user.meetups), []
             for meetup in meetups_list:
-                meetups.append(ProfileMessage.MeetupMessage(name=meetup.name, created=meetup.created))
+                meetups.append(MeetupMessage(name=meetup.name, created=meetup.created, owner=meetup.owner))
             response.friends = friends
             response.meetups = meetups
             return response
@@ -165,9 +165,9 @@ class UserApi(remote.Service):
         """
         user = check_user()
         if user:
-            response = SuccessMessage(int_value=1, str_value="")
+            response = SuccessMessage(int_value=1, str_value="Added: ")
             for email in request.emails:
-                response.str_value += user.add_friend_from_email(email) + ", "
+                response.str_value += email + "-" + user.add_friend_from_email(email) + ", "
             return response
         return no_user()
 
@@ -250,7 +250,7 @@ class UserApi(remote.Service):
     def set_home(self, request):
         user_model = check_user()
         if user_model:
-            lat, lon = request.lat, request.long
+            lat, lon = request.lat, request.lon
             try:
                 user_model.home = ndb.GeoPt(lat=lat, lon=lon)
                 user_model.put()

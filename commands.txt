@@ -11,3 +11,22 @@ F:\gradle-2.3\bin\gradle build
 
 ## on windows
 python "F:\Google App Engine SDK\endpointscfg.py" get_client_lib java -bs gradle api.authentication.UserApi api.data.DataApi --output client_libs
+
+
+
+#### Admin Console ####
+import os
+import pprint
+
+from google.appengine.api import memcache
+from google.appengine.api import mail
+from google.appengine.api import urlfetch
+from google.appengine.ext import db
+import api
+import api.models
+from api.models import UserModel
+
+pprint.pprint(os.environ.copy())
+
+a = UserModel.query(UserModel.email=="Aditya11009@iiitd.ac.in").get()
+print a.meetups.pop(0)
