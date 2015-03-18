@@ -49,7 +49,8 @@ class DataApi(remote.Service):
             user.meetups.append(new_meetup.key)
             user.put()
 
-            user_loc = UserLocationMeetup(user=user.key)  # time is automatic. No last location yet.
+            user_loc = UserLocationMeetup(user=user.key,
+                                          meetup=new_meetup.key)  # time is automatic. No last location yet.
             user_loc.put()
 
             new_meetup.peeps.append(user_loc.key)
@@ -73,7 +74,7 @@ class DataApi(remote.Service):
                         user.meetups.append(meetup.key)
                         user.put()
 
-                        user_loc = UserLocationMeetup(user=user.key)
+                        user_loc = UserLocationMeetup(user=user.key, meetup=meetup.key)
                         user_loc.put()
 
                         meetup.peeps.append(user_loc.key)
@@ -85,7 +86,7 @@ class DataApi(remote.Service):
         return no_user()
 
     @endpoints.method(endpoints.ResourceContainer(unaccepted=messages.BooleanField(1, default=True)), MeetupListMessage,
-                      http_method="GET", path="get_meetups", name="get_meetups")
+                      http_method="POST", path="get_meetups", name="get_meetups")
     def get_meetups(self, request):
         """
         Returns simple list of meetups associated with user. If unaccepted = True (default), shows pending invite meetups.
@@ -104,7 +105,7 @@ class DataApi(remote.Service):
         return MeetupListMessage(success=no_user())
 
 
-    @endpoints.method(UpMeetupMessageSmall, MeetupDescMessage,
+    @endpoints.method(UpMeetupMessageSmall, MeetupDescMessage, http_method="POST",
                       path="get_meetup_details", name="get_meetup_details")
     def get_meetup_details(self, request):
         """
