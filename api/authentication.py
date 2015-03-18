@@ -213,6 +213,9 @@ class UserApi(remote.Service):
             found_friends = find_users(gd_client)
             old_friends = ndb.get_multi(user_model.friends)
             new_friends = [friend for friend in found_friends if friend not in old_friends and friend != user_model]
+            for friend in new_friends:
+                friend.friends.append(user_model)
+                user_model.friends.append(friend)
             return FriendsProfilesMessage(success=success(), profiles=[
                 ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname) for friend in new_friends
             ])
