@@ -212,12 +212,12 @@ class UserApi(remote.Service):
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
                                                              auth_token=GDataAuth(credentials.access_token))
             # all_contacts(gd_client)
-            found_friends = find_users(gd_client)
+            found_friends = find_users(gd_client)  # Get user objects
             old_friends = ndb.get_multi(user_model.friends)
             new_friends = [friend for friend in found_friends if friend not in old_friends and friend != user_model]
             for friend in new_friends:
-                friend.friends.append(user_model)
-                user_model.friends.append(friend)
+                friend.friends.append(user_model.key)  # Crucial Note: Add keys, not entities.
+                user_model.friends.append(friend.key)
             return FriendsProfilesMessage(success=success(), profiles=[
                 ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname) for friend in new_friends
             ])
@@ -231,11 +231,10 @@ class UserApi(remote.Service):
         """
         user_model = check_user()
         if user_model:
-            return FriendsProfilesMessage(profiles=[ProfileMessage.FriendMessage(email=friend.email,
-                                                                                 nickname=friend.nickname)
-                                                    for friend in ndb.get_multi(user_model.friends)])
-        return FriendsProfilesMessage(profiles=[ProfileMessage.FriendMessage(email="unauthenticated",
-                                                                             nickname="unauthenticated")])
+            return FriendsProfilesMessage(success=success(), profiles=[
+                ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname)
+                for friend in ndb.get_multi(user_model.friends)])
+        return FriendsProfilesMessage(success=no_user())
 
     @endpoints.method(message_types.VoidMessage,
                       SuccessMessage,

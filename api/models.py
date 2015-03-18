@@ -51,22 +51,22 @@ class UserModel(EndpointsModel):
 
     def add_friend_from_email(self, email):
         friend = UserModel.query(UserModel.email == email).get()
-        if friend and friend not in self.friends:
-            self.friends.append(friend)
+        if friend and friend.key not in self.friends:
+            self.friends.append(friend.key)
             self.put()
-            if self not in friend.friends:
-                friend.friends.append(self)
+            if self.key not in friend.friends:
+                friend.friends.append(self.key)
                 friend.put()
             return True
         return False
 
     def remove_friend_from_email(self, email):
         friend = UserModel.query(UserModel.email == email).get()
-        if friend and friend in self.friends:
-            self.friends.remove(friend)
+        if friend and friend.key in self.friends:
+            self.friends.remove(friend.key)
             self.put()
-            if self in friend.friends:
-                friend.friends.remove(self)
+            if self.key in friend.friends:
+                friend.friends.remove(self.key)
                 friend.put()
             return True
         return False
@@ -76,16 +76,6 @@ class UserModel(EndpointsModel):
     # Meetups
     meetups = ndb.KeyProperty(repeated=True, kind='Meetup')
     meetup_invites = ndb.KeyProperty(repeated=True, kind="Meetup")
-
-    def accept_meetup(self, meetup):
-        """
-        :type meetup: Meetup
-        :return:
-        """
-        if meetup in ndb.get_multi(self.meetup_invites):
-            self.meetup_invites.remove(meetup)
-            self.meetups.append(meetup)
-        return True
 
 
 class UserLocationMeetup(EndpointsModel):
