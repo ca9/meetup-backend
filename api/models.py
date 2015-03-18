@@ -56,6 +56,9 @@ class UserModel(EndpointsModel):
         if friend and friend not in self.friends:
             self.friends.append(friend)
             self.put()
+            if self not in friend.friends:
+                friend.friends.append(self)
+                friend.put()
             return True
         return False
 
@@ -64,17 +67,11 @@ class UserModel(EndpointsModel):
         if friend and friend in self.friends:
             self.friends.remove(friend)
             self.put()
+            if self in friend.friends:
+                friend.friends.remove(self)
+                friend.put()
             return True
         return False
-
-        # def check_mutual(self, friend):
-        # """
-        # :type friend: UserModel
-        #     :rtype: bool
-        #     """
-        #     if self.key in friend.friends and friend.key in self.friends:
-        #         return True
-        #     return False
 
 
 class UserLocationMeetup(EndpointsModel):

@@ -18,6 +18,7 @@ import time
 
 developers = ("aditya11009@iiitd.ac.in", "vedant12118@iiitd.ac.in", "shubham12101@iiitd.ac.in")
 
+
 def check_user():
     """
     Checks if a UserModel exists against current OAuth token.
@@ -43,7 +44,7 @@ import gdata.contacts.data
 
 
 @endpoints.api(name='users_api',
-               version='v1',
+               version='v2',
                description="Handle Users and Accounts for Meetups Apps.",
                audiences=[client_ids.ANDROID_AUDIENCE],  # WEB CLIENT ID
                scopes=[  # Get email and Details
@@ -57,8 +58,8 @@ class UserApi(remote.Service):
     All the API endponts for User Accounts for Meetup - WayHome app.
     """
 
-    @endpoints.method(endpoints.ResourceContainer(FirstLoginMessage),  # Goes in
-                      api_reply,  # Comes out
+    @endpoints.method(endpoints.ResourceContainer(UpFirstLoginMessage),  # Goes in
+                      SuccessMessage,  # Comes out
                       http_method='POST',
                       path='first_login',
                       name='first_login', auth_level=AUTH_LEVEL.REQUIRED)
@@ -68,8 +69,8 @@ class UserApi(remote.Service):
         if e_user:
             if check_user():
                 print str(e_user) + "already has an account"
-                return api_reply(str_value="Account already exists.",
-                                 int_value=2)
+                return SuccessMessage(str_value="Account already exists.",
+                                      int_value=2)
             user = UserModel(id=e_user.user_id(),
                              nickname=request.name,
                              phone=request.phNumber,
@@ -86,13 +87,12 @@ class UserApi(remote.Service):
                 # https://developers.google.com/api-client-library/python/guide/google_app_engine
                 storage = StorageByKeyName(UserModel, user.key.id(), 'credentials')
                 storage.put(credentials)
-            return api_reply(str_value="Created Account for " + user.nickname,
-                             int_value=1)
+            return SuccessMessage(str_value="Created Account for " + user.nickname, int_value=1)
         return no_user()
 
     @endpoints.method(endpoints.ResourceContainer(value=messages.StringField(1, required=True),
                                                   item=messages.StringField(2, required=True)),
-                      api_reply,
+                      SuccessMessage,
                       http_method="GET",
                       path="change_item",
                       name="change_item", auth_level=AUTH_LEVEL.REQUIRED)
@@ -106,10 +106,9 @@ class UserApi(remote.Service):
                 user.phone = request.value.replace(" ", "").replace("-", '')
                 user.put()
             else:
-                return api_reply(str_value="Cannot access " + request.item)
-            return api_reply(str_value=request.item + " changed to " + request.value, int_value=1)
+                return SuccessMessage(str_value="Cannot access " + request.item)
+            return SuccessMessage(str_value=request.item + " changed to " + request.value, int_value=1)
         return no_user()
-
 
     @endpoints.method(response_message=ProfileMessage, http_method="GET",
                       path="get_profile",
@@ -118,7 +117,7 @@ class UserApi(remote.Service):
     def get_profile(self, request):
         user = check_user()
         if user:
-            response = ProfileMessage(success=True,
+            response = ProfileMessage(success=success(),
                                       nickname=user.nickname,
                                       phone=user.phone,
                                       email=user.email,
@@ -126,94 +125,77 @@ class UserApi(remote.Service):
             friends_list, friends = ndb.get_multi(user.friends), []
             for friend in friends_list:
                 friends.append(ProfileMessage.FriendMessage(email=friend.email,
-                                                            nickname=friend.nickname))  # mutual=user.check_mutual(friend)))
+                                                            nickname=friend.nickname))
             meetups_list, meetups = ndb.get_multi(user.meetups), []
             for meetup in meetups_list:
                 meetups.append(ProfileMessage.MeetupMessage(name=meetup.name, created=meetup.created))
             response.friends = friends
             response.meetups = meetups
             return response
-        return ProfileMessage(success=False)
-
-    # @endpoints.method(response_message = FriendsMessageInd,
-    # http_method="GET",
-    # path="get_pending_adds",
-    #                   name="get_pending_adds",
-    #                   auth_level=AUTH_LEVEL.REQUIRED)
-    # def get_pending_adds(self, request):
-    #     user = check_user()
-    #     if user:
-    #         added_me = UserModel.query(UserModel.friends == user.key).fetch()
-    #         response = []
-    #         for friend in added_me:
-    #             if friend.key not in user.friends:
-    #                 response.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname))
-    #         return FriendsMessageInd(profiles=response)
-    #     return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="Not connected",
-    # nickname="Not connected")])
+        return ProfileMessage(success=no_user())
 
     @endpoints.method(endpoints.ResourceContainer(email=messages.StringField(1, required=True),
                                                   add=messages.BooleanField(2, required=True, default=True)),
-                      api_reply,
+                      SuccessMessage,
                       http_method="GET", name="add_remove_friend_by_email", path="add_remove_friend_by_email",
                       auth_level=AUTH_LEVEL.REQUIRED)
     def add_remove_friend_by_email(self, request):
         user = check_user()
         if user:
             if request.add:
-                success = user.add_friend_from_email(request.email)
-                if success:
-                    return api_reply(str_value=request.email + " added as friend!")
+                success_edit = user.add_friend_from_email(request.email)
+                if success_edit:
+                    return SuccessMessage(str_value=request.email + " added as friend!", int_value=1)
             else:
-                success = user.remove_friend_from_email(request.email)
-                if success:
-                    return api_reply(str_value=request.email + " removed as friend!")
-            return api_reply(str_value=request.email + " not found!")
+                success_edit = user.remove_friend_from_email(request.email)
+                if success_edit:
+                    return SuccessMessage(str_value=request.email + " removed as friend!", int_value=1)
+            return SuccessMessage(str_value=request.email + " not found!")
         return no_user()
 
-    @endpoints.method(FriendsMessageInd,
-                      api_reply, http_method="POST", name="bulk_add", path="bulk_add")
+    @endpoints.method(UpUserEmailsMessage,
+                      SuccessMessage, http_method="POST", name="bulk_add", path="bulk_add")
     def add_friends_bulk(self, request):
         """
-        :type request: FriendsMessageInd
+        Accepts a list of user-emails, each of which get added to your friends (two-way).
+
+        :type request: UpUserEmailsMessage
         """
         user = check_user()
         if user:
-            response = api_reply(int_value = 1)
-            for friend_message in request.profiles:
-                response.str_value += user.add_friend_from_email(friend_message.email) + ", "
+            response = SuccessMessage(int_value=1, str_value="")
+            for email in request.emails:
+                response.str_value += user.add_friend_from_email(email) + ", "
             return response
         return no_user()
 
-
-    @endpoints.method(response_message = UserEmailList,
+    @endpoints.method(response_message=FriendsProfilesMessage,
                       auth_level=AUTH_LEVEL.REQUIRED, name='create_dummies', path="create_dummies")
     def create_dummies(self, request):
         user = check_user()
-        print user.email.lower(), developers
         if user and user.email.lower() in developers:
             n1 = ('woody', 'buzz', 'jessie', 'rex', 'potato', 'sid')
             n2 = ('walle', 'eve', 'axiom', 'captain', 'beta')
             n3 = ('aldrin', 'mik', 'jagger', 'romeo', 'charlie')
-            emails = []
+            profiles = []
             for i in range(5):
                 name = '-'.join([random.choice(n1), random.choice(n2), random.choice(n3)])
-                emails.append(name + "@example.com")
-                dummy = UserModel(id=emails[i], nickname=name,
+                email = name + "@example.com"
+                dummy = UserModel(id=email, nickname=name,
                                   phone=str(int(random.random() * (10 ** 10))),
                                   gcm_main=str(uuid4()),
-                                  email=emails[i])
+                                  email=email)
                 dummy.put()
+                profiles.append(ProfileMessage.FriendMessage(email=email, nickname=name))
                 if random.random() > 0.5:
                     dummy.friends.append(user.key)
                     user.friends.append(dummy.key)
                 user.put()
                 dummy.put()
-            return UserEmailList(emails=emails)
-        return UserEmailList(emails=["Unauthenticated"])
+            return FriendsProfilesMessage(success=success(), profiles=profiles)
+        return FriendsProfilesMessage(success=no_user())
 
-
-    @endpoints.method(response_message=FriendsMessageInd,
+    @endpoints.method(response_message=FriendsProfilesMessage,
                       path="refresh_contacts",
                       name="refresh_contacts")
     def refresh_contacts(self, request):
@@ -231,14 +213,12 @@ class UserApi(remote.Service):
             found_friends = find_users(gd_client)
             old_friends = ndb.get_multi(user_model.friends)
             new_friends = [friend for friend in found_friends if friend not in old_friends and friend != user_model]
-            return FriendsMessageInd(profiles=[
+            return FriendsProfilesMessage(success=success(), profiles=[
                 ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname) for friend in new_friends
             ])
-        return FriendsMessageInd(profiles=[
-            ProfileMessage.FriendMessage(email='Unauthenticated', nickname='Unauthenticated')
-        ])
+        return FriendsProfilesMessage(success=no_user())
 
-    @endpoints.method(response_message=FriendsMessageInd,
+    @endpoints.method(response_message=FriendsProfilesMessage,
                       path="get_friends",
                       name="get_friends")
     def get_friends(self, request):
@@ -246,19 +226,19 @@ class UserApi(remote.Service):
         """
         user_model = check_user()
         if user_model:
-            return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email=friend.email,
-                                                                            nickname=friend.nickname)
-                                               for friend in ndb.get_multi(user_model.friends)])
-        return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="unauthenticated",
-                                                                        nickname="unauthenticated")])
+            return FriendsProfilesMessage(profiles=[ProfileMessage.FriendMessage(email=friend.email,
+                                                                                 nickname=friend.nickname)
+                                                    for friend in ndb.get_multi(user_model.friends)])
+        return FriendsProfilesMessage(profiles=[ProfileMessage.FriendMessage(email="unauthenticated",
+                                                                             nickname="unauthenticated")])
 
     @endpoints.method(message_types.VoidMessage,
-                      api_reply,
+                      SuccessMessage,
                       path="ping_hello",
                       http_method="GET",
                       name="ping_hello")
     def hello_ping(self, request):
-        return api_reply(str_value="Hi, received ping.", int_value=1)
+        return SuccessMessage(str_value="Hi, received ping.", int_value=1)
 
 
 def find_users(gd_client):
@@ -275,9 +255,9 @@ def find_users(gd_client):
                 emails.append(email.address)
                 semails.append(email.address)
             for number in entry.phone_number:
-                    form_num = str(number.text).replace(" ", "").replace("-", '')
-                    numbers.append(form_num)
-                    snumbers.append(form_num)
+                form_num = str(number.text).replace(" ", "").replace("-", '')
+                numbers.append(form_num)
+                snumbers.append(form_num)
             if len(emails) or len(numbers):
                 contacts.append((name, numbers, emails))
         except Exception as e:
@@ -303,16 +283,16 @@ def all_contacts(gd_client):
         try:
             if entry.name:
                 if entry.name.full_name:
-                    print '\n%s' % (entry.name.full_name.text)
+                    print '\n%s' % entry.name.full_name.text
             if entry.content:
-                print '    %s' % (entry.content.text)
+                print '    %s' % entry.content.text
             # Display the primary email address for the contact.
             for email in entry.email:
                 if email.primary and email.primary == 'true':
-                    print '    %s' % (email.address)
+                    print '    %s' % email.address
             # Show the contact groups that this contact is a member of.
             for group in entry.group_membership_info:
-                print '    Member of group: %s' % (group.href)
+                print '    Member of group: %s' % group.href
             # Display extended properties.
             for extended_property in entry.extended_property:
                 if extended_property.value:
