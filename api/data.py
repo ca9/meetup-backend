@@ -3,7 +3,7 @@ from models import *
 
 
 @endpoints.api(name='data_api',
-               version='v1',
+               version='v2',
                description='Access, create or delete data for meetups.',
                audiences=[client_ids.ANDROID_AUDIENCE],  # WEB CLIENT ID
                scopes=[  # Get email and Details
