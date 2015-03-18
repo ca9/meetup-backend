@@ -47,6 +47,8 @@ class ProfileMessage(messages.Message):
     friends = messages.MessageField(FriendMessage, 5, repeated=True)
     meetups = messages.MessageField(MeetupMessage, 6, repeated=True)
     created = message_types.DateTimeField(7)
+    home_lat = messages.FloatField(8)
+    home_long = messages.FloatField(9)
 
 
 class FriendsProfilesMessage(messages.Message):
@@ -73,3 +75,9 @@ class UpFirstLoginMessage(messages.Message):
 
 class UpUserEmailsMessage(messages.Message):
     emails = messages.StringField(1, repeated=True)
+
+
+class UpLocationMessage(messages.Message):
+    lat = messages.FloatField(1, required=True)
+    long = messages.FloatField(2, required=True)
+    time = message_types.DateTimeField(3)

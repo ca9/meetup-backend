@@ -24,8 +24,6 @@ class UserModel(EndpointsModel):
         self.nickname = name
         return name
 
-    # Meetups
-    meetups = ndb.KeyProperty(repeated=True, kind='Meetup')
 
     def add_meetup(self, a_meetup):
         self.meetups.append(a_meetup)
@@ -72,6 +70,24 @@ class UserModel(EndpointsModel):
                 friend.put()
             return True
         return False
+
+    home = ndb.GeoPtProperty()
+
+    # Meetups
+    meetups = ndb.KeyProperty(repeated=True, kind='Meetup')
+    meetup_invites = ndb.KeyProperty(repeated=True, kind="Meetup")
+
+    def accept_meetup(self, meetup):
+        """
+        :type meetup: Meetup
+        :return:
+        """
+        if meetup in ndb.get_multi(self.meetup_invites):
+            self.meetup_invites.remove(meetup)
+            self.meetups.append(meetup)
+        return True
+
+
 
 
 class UserLocationMeetup(EndpointsModel):

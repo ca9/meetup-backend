@@ -122,6 +122,8 @@ class UserApi(remote.Service):
                                       phone=user.phone,
                                       email=user.email,
                                       created=user.created)
+            if user.home:
+                response.home_lat, response.home_long = user.home.lat, user.home.lon
             friends_list, friends = ndb.get_multi(user.friends), []
             for friend in friends_list:
                 friends.append(ProfileMessage.FriendMessage(email=friend.email,
@@ -242,6 +244,20 @@ class UserApi(remote.Service):
                       name="ping_hello")
     def hello_ping(self, request):
         return SuccessMessage(str_value="Hi, received ping.", int_value=1)
+
+    @endpoints.method(UpLocationMessage, SuccessMessage, path="set_home", name="set_home", http_method="POST",
+                      auth_level=AUTH_LEVEL.REQUIRED)
+    def set_home(self, request):
+        user_model = check_user()
+        if user_model:
+            lat, lon = request.lat, request.long
+            try:
+                user_model.home = ndb.GeoPt(lat=lat, lon=lon)
+                user_model.put()
+            except Exception as e:
+                return SuccessMessage(str_value="Invalid location." + e.message, int_value=0)
+            return success()
+        return no_user()
 
 
 def find_users(gd_client):
