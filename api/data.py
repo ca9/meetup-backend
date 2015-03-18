@@ -60,6 +60,8 @@ class DataApi(remote.Service):
     @endpoints.method(UpMeetupMessageSmall,
                       SuccessMessage, path="accept_meetup", name="accept_meetup")
     def accept_meetup(self, request):
+        """Accepts a meetup for the user.
+        """
         user = check_user()
         if user:
             owner = UserModel.query(UserModel.email == request.owner).get()
@@ -82,19 +84,58 @@ class DataApi(remote.Service):
             return SuccessMessage(str_value="No such owner.")
         return no_user()
 
-    @endpoints.method(response_message=MeetupListMessage,
+    @endpoints.method(endpoints.ResourceContainer(unaccepted=messages.BooleanField(1, default=True)), MeetupListMessage,
                       http_method="GET", path="get_meetups", name="get_meetups")
     def get_meetups(self, request):
+        """
+        Returns simple list of meetups associated with user. If unaccepted = True (default), shows pending invite meetups.
+        Else shows active/accepted meetups.
+        """
         user = check_user()
         if user:
-            meetups = ndb.get_multi(user.meetups)
+            if request.unaccepted:
+                meetups = ndb.get_multi(user.meetup_invites)
+            else:
+                meetups = ndb.get_multi(user.meetups)
             return MeetupListMessage(success=success(), meetups=[
-                MeetupMessage(owner=meetup.owner.get().email, name=meetup.name, created=meetup.created) for meetup in
-                meetups
+                MeetupMessage(owner=meetup.owner.get().email, name=meetup.name, created=meetup.created,
+                              active=meetup.active) for meetup in meetups
             ])
         return MeetupListMessage(success=no_user())
 
 
+    @endpoints.method(UpMeetupMessageSmall, MeetupDescMessage,
+                      path="get_meetup_details", name="get_meetup_details")
+    def get_meetup_details(self, request):
+        """
+        Provides full detailed description of a meetup.
+        """
+        user = check_user()
+        if user:
+            owner = UserModel.query(UserModel.email == request.owner).get()
+            if owner:
+                meetup = Meetup.query(Meetup.owner == owner.key, Meetup.name == request.name).get()
+                if meetup:
+                    if meetup.key in user.meetup_invites + user.meetups:
+                        # We have permission to see full description
+                        return MeetupDescMessage(success=success(),
+                                                 owner=meetup.owner.get().email,
+                                                 name=meetup.name,
+                                                 pending=[ProfileMessage.FriendMessage(email=peep.email,
+                                                                                       nickname=peep.nickname) for peep
+                                                          in ndb.get_multi(meetup.invited_peeps)],
+                                                 accepted=[ProfileMessage.FriendMessage(email=peep.email,
+                                                                                        nickname=peep.nickname) for peep
+                                                           in [peepMeetupLoc.user.get() for peepMeetupLoc in
+                                                               ndb.get_multi(meetup.peeps)]],
+                                                 lat_destination=meetup.destination.lat,
+                                                 lon_destination=meetup.destination.lon,
+                                                 time_to_arrive=meetup.time_to_arrive,
+                                                 created=meetup.created)
+                    return MeetupDescMessage(success=SuccessMessage(str_value="No invite for this meetup!"))
+                return MeetupDescMessage(success=SuccessMessage(str_value="No such meetup!"))
+            return MeetupDescMessage(success=SuccessMessage(str_value="No such owner."))
+        return MeetupDescMessage(success=no_user())
 
 
 

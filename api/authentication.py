@@ -130,7 +130,8 @@ class UserApi(remote.Service):
                                                             nickname=friend.nickname))
             meetups_list, meetups = ndb.get_multi(user.meetups), []
             for meetup in meetups_list:
-                meetups.append(MeetupMessage(name=meetup.name, created=meetup.created, owner=meetup.owner))
+                meetups.append(
+                    MeetupMessage(name=meetup.name, created=meetup.created, owner=meetup.owner, active=meetup.active))
             response.friends = friends
             response.meetups = meetups
             return response

@@ -29,7 +29,8 @@ class MeetupMessage(messages.Message):
     """ Json containing Meetup Description """
     name = messages.StringField(1, required=True)
     owner = messages.StringField(2, required=True)
-    created = message_types.DateTimeField(3)
+    active = messages.BooleanField(3)
+    created = message_types.DateTimeField(4)
 
 
 # All profile information for user.
@@ -61,14 +62,15 @@ class FriendsProfilesMessage(messages.Message):
 class MeetupDescMessage(messages.Message):
     """ Describes a Meetup.
     """
-    owner = messages.StringField(1, required=True)
-    name = messages.StringField(2, required=True)
-    pending = messages.MessageField(ProfileMessage.FriendMessage, 3, repeated=True)
-    accepted = messages.MessageField(ProfileMessage.FriendMessage, 4, repeated=True)
-    lon_destination = messages.FloatField(5)
-    lat_destination = messages.FloatField(6)
-    success = messages.MessageField(SuccessMessage, 7, required=True)
+    success = messages.MessageField(SuccessMessage, 1, required=True)
+    owner = messages.StringField(2)
+    name = messages.StringField(3)
+    pending = messages.MessageField(ProfileMessage.FriendMessage, 4, repeated=True)
+    accepted = messages.MessageField(ProfileMessage.FriendMessage, 5, repeated=True)
+    lon_destination = messages.FloatField(6)
+    lat_destination = messages.FloatField(7)
     time_to_arrive = message_types.DateTimeField(8)
+    created = message_types.DateTimeField(9)
 
 
 class MeetupListMessage(messages.Message):
