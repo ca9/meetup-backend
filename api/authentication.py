@@ -125,8 +125,8 @@ class UserApi(remote.Service):
                                       created=user.created)
             friends_list, friends = ndb.get_multi(user.friends), []
             for friend in friends_list:
-                friends.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname,
-                                                            mutual=user.check_mutual(friend)))
+                friends.append(ProfileMessage.FriendMessage(email=friend.email,
+                                                            nickname=friend.nickname))  # mutual=user.check_mutual(friend)))
             meetups_list, meetups = ndb.get_multi(user.meetups), []
             for meetup in meetups_list:
                 meetups.append(ProfileMessage.MeetupMessage(name=meetup.name, created=meetup.created))
@@ -135,21 +135,22 @@ class UserApi(remote.Service):
             return response
         return ProfileMessage(success=False)
 
-    @endpoints.method(response_message = FriendsMessageInd,
-                      http_method="GET",
-                      path="get_pending_adds",
-                      name="get_pending_adds",
-                      auth_level=AUTH_LEVEL.REQUIRED)
-    def get_pending_adds(self, request):
-        user = check_user()
-        if user:
-            added_me = UserModel.query(UserModel.friends == user.key).fetch()
-            response = []
-            for friend in added_me:
-                if friend.key not in user.friends:
-                    response.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname))
-            return FriendsMessageInd(profiles=response)
-        return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="Not connected", nickname="Not connected")])
+    # @endpoints.method(response_message = FriendsMessageInd,
+    # http_method="GET",
+    # path="get_pending_adds",
+    #                   name="get_pending_adds",
+    #                   auth_level=AUTH_LEVEL.REQUIRED)
+    # def get_pending_adds(self, request):
+    #     user = check_user()
+    #     if user:
+    #         added_me = UserModel.query(UserModel.friends == user.key).fetch()
+    #         response = []
+    #         for friend in added_me:
+    #             if friend.key not in user.friends:
+    #                 response.append(ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname))
+    #         return FriendsMessageInd(profiles=response)
+    #     return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="Not connected",
+    # nickname="Not connected")])
 
     @endpoints.method(endpoints.ResourceContainer(email=messages.StringField(1, required=True),
                                                   add=messages.BooleanField(2, required=True, default=True)),
@@ -205,7 +206,6 @@ class UserApi(remote.Service):
                 dummy.put()
                 if random.random() > 0.5:
                     dummy.friends.append(user.key)
-                if random.random() > 0.5:
                     user.friends.append(dummy.key)
                 user.put()
                 dummy.put()
@@ -213,11 +213,12 @@ class UserApi(remote.Service):
         return UserEmailList(emails=["Unauthenticated"])
 
 
-    @endpoints.method(response_message=UserEmailList,
-                      path="get_contacts",
-                      name="get_contacts")
-    def get_contacts(self, request):
-        """ Returns (email list of) people you may know on Meetup (from google contacts).
+    @endpoints.method(response_message=FriendsMessageInd,
+                      path="refresh_contacts",
+                      name="refresh_contacts")
+    def refresh_contacts(self, request):
+        """ Returns (email list of) people you know but havent added on Meetup (from google contacts),
+            and adds them to your contacts (if they have an account).
         """
         user_model = check_user()
         if user_model:
@@ -227,9 +228,29 @@ class UserApi(remote.Service):
             gd_client = gdata.contacts.client.ContactsClient(source='<var>intense-terra-821</var>',
                                                              auth_token=GDataAuth(credentials.access_token))
             # all_contacts(gd_client)
-            friends_on_meetup = [friend.email for friend in find_users(gd_client)]
-            return UserEmailList(emails=friends_on_meetup)
-        return UserEmailList(emails=['Unauthenticated'])
+            found_friends = find_users(gd_client)
+            old_friends = ndb.get_multi(user_model.friends)
+            new_friends = [friend for friend in found_friends if friend not in old_friends and friend != user_model]
+            return FriendsMessageInd(profiles=[
+                ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname) for friend in new_friends
+            ])
+        return FriendsMessageInd(profiles=[
+            ProfileMessage.FriendMessage(email='Unauthenticated', nickname='Unauthenticated')
+        ])
+
+    @endpoints.method(response_message=FriendsMessageInd,
+                      path="get_friends",
+                      name="get_friends")
+    def get_friends(self, request):
+        """ Returns your friends' profiles.
+        """
+        user_model = check_user()
+        if user_model:
+            return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email=friend.email,
+                                                                            nickname=friend.nickname)
+                                               for friend in ndb.get_multi(user_model.friends)])
+        return FriendsMessageInd(profiles=[ProfileMessage.FriendMessage(email="unauthenticated",
+                                                                        nickname="unauthenticated")])
 
     @endpoints.method(message_types.VoidMessage,
                       api_reply,

@@ -67,14 +67,14 @@ class UserModel(EndpointsModel):
             return True
         return False
 
-    def check_mutual(self, friend):
-        """
-        :type friend: UserModel
-        :rtype: bool
-        """
-        if self.key in friend.friends and friend.key in self.friends:
-            return True
-        return False
+        # def check_mutual(self, friend):
+        # """
+        # :type friend: UserModel
+        #     :rtype: bool
+        #     """
+        #     if self.key in friend.friends and friend.key in self.friends:
+        #         return True
+        #     return False
 
 
 class UserLocationMeetup(EndpointsModel):

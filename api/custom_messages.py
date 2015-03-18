@@ -34,7 +34,7 @@ class ProfileMessage(messages.Message):
         """ JSON containing all information about friends visible to a user """
         email = messages.StringField(1)
         nickname = messages.StringField(2)
-        mutual = messages.BooleanField(3)
+        # mutual = messages.BooleanField(3)
 
     class MeetupMessage(messages.Message):
         """ Json containing all information about a user's Meetups """
