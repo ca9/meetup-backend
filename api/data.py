@@ -80,7 +80,7 @@ class DataApi(remote.Service):
                         meetup.peeps.append(user_loc.key)
                         meetup.put()
                         return success()
-                    return SuccessMessage(str_value="No invite for this meetup!")
+                    return SuccessMessage(str_value="No pending invite for this meetup!")
                 return SuccessMessage(str_value="No such meetup!")
             return SuccessMessage(str_value="No such owner.")
         return no_user()
@@ -138,8 +138,62 @@ class DataApi(remote.Service):
             return MeetupDescMessage(success=SuccessMessage(str_value="No such owner."))
         return MeetupDescMessage(success=no_user())
 
+    @endpoints.method(UpLocationMessage, MeetupLocationsUpdateFullMessage, http_method="POST",
+                      path="heartbeat", name="heartbeat")
+    def heartbeat(self, request):
+        """
+        Accepts latest location against a meetup. Returns latest locations of meetup. "details" boolean demands
+        historical locations.
+        :type request: UpLocationMessage
+        """
+        user = check_user()
+        if user:
+            owner = UserModel.query(UserModel.email == request.meetup_owner).get()
+            if owner:
+                meetup = Meetup.query(Meetup.owner == owner.key, Meetup.name == request.meetup_name).get()
+                if meetup:
+                    if meetup.key in user.meetups:
+                        my_meetup_loc = UserLocationMeetup.query(UserLocationMeetup.meetup == meetup.key,
+                                                                 UserLocationMeetup.user == user.key).get()
+                        if not my_meetup_loc:
+                            # Fix the Meetup entry.
+                            my_meetup_loc = UserLocationMeetup(meetup=meetup.key, user=user.key)
+                            my_meetup_loc.put()
+                            meetup.invited_peeps.remove(user.key)
+                            meetup.peeps.append(my_meetup_loc.key)
+                            meetup.put()
 
+                        # Update me.
+                        my_meetup_loc.last_location = ndb.GeoPt(request.lat, request.lon)
 
+                        location = LocationItem(location=my_meetup_loc.last_location)
+                        location.put()
+
+                        my_meetup_loc.locations.append(location.key)
+                        my_meetup_loc.put()
+
+                        # Build the response
+                        response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[])
+                        for ulm in ndb.get_multi(meetup.peeps):
+                            peep = ulm.user.get()
+                            a_plm = PeepLocationsMessage(name=peep.nickname, email=peep.email,
+                                                         latest_location=LocationMessage(lat=ulm.last_location.lat,
+                                                                                         # GeoPt
+                                                                                         lon=ulm.last_location.lon,
+                                                                                         # GeoPt
+                                                                                         time=ulm.last_update))
+                            if request.details:
+                                locs = [LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time) for
+                                        loc in ndb.get_multi(ulm.locations)]  # LocationItems
+                                a_plm.locations = locs
+                            response.UserMeetupLocations.append(a_plm)
+
+                        return response
+                    return MeetupLocationsUpdateFullMessage(
+                        success=SuccessMessage(str_value="Not a member of this meetup!"))
+                return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such meetup!"))
+            return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such owner."))
+        return MeetupLocationsUpdateFullMessage(success=no_user())
 
 
 

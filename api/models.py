@@ -78,10 +78,15 @@ class UserModel(EndpointsModel):
     meetup_invites = ndb.KeyProperty(repeated=True, kind="Meetup")
 
 
+class LocationItem(EndpointsModel):
+    location = ndb.GeoPtProperty(required=True)
+    time = ndb.DateTimeProperty(auto_now_add=True)
+
+
 class UserLocationMeetup(EndpointsModel):
     user = ndb.KeyProperty(kind="UserModel", required=True)
     meetup = ndb.KeyProperty(kind="Meetup", required=True)
-    locations = ndb.GeoPtProperty(repeated=True)
+    locations = ndb.KeyProperty(kind='LocationItem', repeated=True)  # Wow, 3 levels.
     last_location = ndb.GeoPtProperty()
     last_update = ndb.DateTimeProperty(auto_now=True)
 

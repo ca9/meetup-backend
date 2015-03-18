@@ -80,6 +80,43 @@ class MeetupListMessage(messages.Message):
 
 ##################################
 """
+Location Heartbeats
+"""
+##################################
+
+class LocationMessage(messages.Message):
+    lat = messages.FloatField(1, required=True)
+    lon = messages.FloatField(2, required=True)
+    time = message_types.DateTimeField(3)
+
+
+class PeepLocationsMessage(messages.Message):
+    latest_location = messages.MessageField(LocationMessage, 1, required=True)
+    locations = messages.MessageField(LocationMessage, 2, repeated=True)
+    name = messages.StringField(3, required=True)
+    email = messages.StringField(4, required=True)
+
+
+class MeetupLocationsUpdateFullMessage(messages.Message):
+    success = messages.MessageField(SuccessMessage, 1, required=True)
+    UserMeetupLocations = messages.MessageField(PeepLocationsMessage, 2, repeated=True)
+
+
+"""
+Should go in the list below
+"""
+
+
+class UpLocationMessage(messages.Message):
+    lat = messages.FloatField(1, required=True)
+    lon = messages.FloatField(2, required=True)
+    meetup_name = messages.StringField(3)
+    meetup_owner = messages.StringField(4)
+    details = messages.BooleanField(5, default=False)
+
+
+##################################
+"""
 Upstream Messages below this point.
 """
 ##################################
@@ -98,12 +135,6 @@ class UpFirstLoginMessage(messages.Message):
 
 class UpUserEmailsMessage(messages.Message):
     emails = messages.StringField(1, repeated=True)
-
-
-class UpLocationMessage(messages.Message):
-    lat = messages.FloatField(1, required=True)
-    lon = messages.FloatField(2, required=True)
-    time = message_types.DateTimeField(3)
 
 
 class UpMeetupCreateMessage(messages.Message):
