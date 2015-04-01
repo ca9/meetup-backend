@@ -1,3 +1,5 @@
+import calendar
+from datetime import datetime
 from authentication import *
 from models import *
 
@@ -40,7 +42,7 @@ class DataApi(remote.Service):
             new_meetup = Meetup(name=request.name, destination=destination, owner=user.key, active=True)
             new_meetup.invited_peeps = [invitee.key for invitee in invitees]
             if request.timeToArrive:
-                new_meetup.time_to_arrive = request.timeToArrive
+                new_meetup.time_to_arrive = local_to_utc(request.timeToArrive)
             new_meetup.put()
 
             for peep in invitees:
@@ -85,7 +87,7 @@ class DataApi(remote.Service):
             return SuccessMessage(str_value="No such owner.")
         return no_user()
 
-    @endpoints.method(endpoints.ResourceContainer(unaccepted=messages.BooleanField(1, default=True)), MeetupListMessage,
+    @endpoints.method(request_message=message_types.VoidMessage, response_message=MeetupListMessage,
                       http_method="POST", path="get_meetups", name="get_meetups")
     def get_meetups(self, request):
         """
@@ -94,16 +96,28 @@ class DataApi(remote.Service):
         """
         user = check_user()
         if user:
-            if request.unaccepted:
-                meetups = ndb.get_multi(user.meetup_invites)
-            else:
-                meetups = ndb.get_multi(user.meetups)
+            meetups = ndb.get_multi(user.meetups)
             return MeetupListMessage(success=success(), meetups=[
                 MeetupMessage(owner=meetup.owner.get().email, name=meetup.name, created=meetup.created,
                               active=meetup.active) for meetup in meetups
             ])
         return MeetupListMessage(success=no_user())
 
+    @endpoints.method(request_message=message_types.VoidMessage, response_message=MeetupListMessage,
+                      http_method="POST", path="get_meetups_unaccepted", name="get_meetups_unaccepted")
+    def get_meetups_unaccepted(self, request):
+        """
+        Returns simple list of meetups associated with user. If unaccepted = True (default), shows pending invite meetups.
+        Else shows active/accepted meetups.
+        """
+        user = check_user()
+        if user:
+            meetups = ndb.get_multi(user.meetup_invites)
+            return MeetupListMessage(success=success(), meetups=[
+                MeetupMessage(owner=meetup.owner.get().email, name=meetup.name, created=meetup.created,
+                              active=meetup.active) for meetup in meetups
+            ])
+        return MeetupListMessage(success=no_user())
 
     @endpoints.method(UpMeetupMessageSmall, MeetupDescMessage, http_method="POST",
                       path="get_meetup_details", name="get_meetup_details")
@@ -196,6 +210,20 @@ class DataApi(remote.Service):
         return MeetupLocationsUpdateFullMessage(success=no_user())
 
 
+##################
+# Helper Functions
+##################
+
+def local_to_utc(dt):
+    """
+    :type dt: datetime
+    :rtype: datetime
+    """
+    secs = time.mktime(dt.timetuple())  # convert to tuple, to seconds
+    secs = time.gmtime(secs)  # to GMT/UTC
+    return datetime.fromtimestamp(time.mktime(secs))
 
 
-
+def utc_to_local(t):
+    secs = calendar.timegm(t)
+    return time.localtime(secs)
