@@ -88,11 +88,10 @@ class DataApi(remote.Service):
         return no_user()
 
     @endpoints.method(request_message=message_types.VoidMessage, response_message=MeetupListMessage,
-                      http_method="POST", path="get_meetups", name="get_meetups")
-    def get_meetups(self, request):
+                      http_method="POST", path="get_meetups_accepted", name="get_meetups_accepted")
+    def get_meetups_accepted(self, request):
         """
-        Returns simple list of meetups associated with user. If unaccepted = True (default), shows pending invite meetups.
-        Else shows active/accepted meetups.
+        Returns simple list of accepted meetups associated with user.
         """
         user = check_user()
         if user:
@@ -107,8 +106,7 @@ class DataApi(remote.Service):
                       http_method="POST", path="get_meetups_unaccepted", name="get_meetups_unaccepted")
     def get_meetups_unaccepted(self, request):
         """
-        Returns simple list of meetups associated with user. If unaccepted = True (default), shows pending invite meetups.
-        Else shows active/accepted meetups.
+        Returns simple list of unaccepted meetups associated with user.
         """
         user = check_user()
         if user:
