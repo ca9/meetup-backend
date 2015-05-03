@@ -146,7 +146,7 @@ class UserApi(remote.Service):
         user = check_user()
         if user:
             if request.add:
-                success_edit = user.add_friend_from_email(request.email)
+                success_edit = user.add_friend_from_email(request.email.lower())
                 if success_edit:
                     return SuccessMessage(str_value=request.email + " added as friend!", int_value=1)
             else:
@@ -214,11 +214,16 @@ class UserApi(remote.Service):
                                                              auth_token=GDataAuth(credentials.access_token))
             # all_contacts(gd_client)
             found_friends = find_users(gd_client)  # Get user objects
+            #print 'found', [x.nickname for x in found_friends]
             old_friends = ndb.get_multi(user_model.friends)
+            #print 'old', [x.nickname for x in old_friends]
             new_friends = [friend for friend in found_friends if friend not in old_friends and friend != user_model]
+            #print 'new', [x.nickname for x in new_friends]
             for friend in new_friends:
                 friend.friends.append(user_model.key)  # Crucial Note: Add keys, not entities.
                 user_model.friends.append(friend.key)
+                friend.put()
+            user_model.put()
             return FriendsProfilesMessage(success=success(), profiles=[
                 ProfileMessage.FriendMessage(email=friend.email, nickname=friend.nickname) for friend in new_friends
             ])
@@ -281,6 +286,7 @@ def find_users(gd_client):
                 contacts.append((name, numbers, emails))
         except Exception as e:
             print e
+    semails = map(str.lower, semails) #crucial
     match_numbers = UserModel.query(UserModel.phone.IN(snumbers)).fetch()
     match_emails = UserModel.query(UserModel.email.IN(semails)).fetch()
     return match_emails + match_numbers
@@ -349,7 +355,7 @@ def get_user():
             time.sleep(wait)
             wait += i
     ret_user = users.User(
-        email=user['email'],
+        email=user['email'].lower(), #very important.
         _user_id=user['user_id']
     )
     if "issuer" in user:
