@@ -150,6 +150,8 @@ class UpMeetupMessageSmall(messages.Message):
     owner = messages.StringField(1, required=True)
     name = messages.StringField(2, required=True)
 
+class UpMeetupMessageOwner(messages.Message):
+    meetup_name = messages.StringField(1, required=True)
 
 ##################################
 """
