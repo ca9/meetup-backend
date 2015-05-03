@@ -43,7 +43,7 @@ class DataApi(remote.Service):
             new_meetup.invited_peeps = [invitee.key for invitee in invitees]
             if request.timeToArrive:
                 time_to_arrive_utc = local_to_utc(request.timeToArrive)
-                if timedelta(hours=-1) > time_to_arrive_utc - datetime.now() >= timedelta(hours=3):
+                if timedelta(hours=-1) <= time_to_arrive_utc - datetime.now() <= timedelta(hours=3):
                     new_meetup.active = True
                 new_meetup.time_to_arrive = time_to_arrive_utc
             new_meetup.put()
