@@ -213,7 +213,7 @@ class DataApi(remote.Service):
                             return response
                         return MeetupLocationsUpdateFullMessage(
                             success=SuccessMessage(str_value="Not a member of this meetup!"))
-                    return MeetupLocationsUpdateFullMessage(success=SuccessMessage("Meetup is inactive.", int_value=2))
+                    return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="Meetup is inactive.", int_value=2))
                 return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such meetup!"))
             return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such owner."))
         return MeetupLocationsUpdateFullMessage(success=no_user())
