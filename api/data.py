@@ -100,14 +100,13 @@ class DataApi(remote.Service):
 
                         # gcm inform
                         gcm_reg_ids = []
-                        for peep in ndb.get_multi(meetup.peeps):
-                            gcm_reg_ids.append(peep.user.get().gcm_main)
+                        for peep in ndb.get_multi([ulm.user for ulm in ndb.get_multi(meetup.peeps)]):
+                            gcm_reg_ids.append(peep.gcm_main)
                         try:
                             gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                             data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
                                     'active': meetup.active, 'meetup_owner_email': owner.email,
-                                    'acceptor_name': user.nickname,
-                                    'acceptor_email': user.email}
+                                    'acceptor_name': user.nickname, 'acceptor_email': user.email}
                             gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_accepted')
                         except Exception as e:
                             print e
@@ -222,6 +221,18 @@ class DataApi(remote.Service):
                                 meetup.active = False
                                 meetup.put() #todo: notify
 
+                                # notify
+                                gcm_reg_ids = []
+                                for peep in ndb.get_multi([ulm.user for ulm in ndb.get_multi(meetup.peeps)]):
+                                    gcm_reg_ids.append(peep.gcm_main)
+                                try:
+                                    gcm = GCM(client_ids.API_SERVER_GCM_PIN)
+                                    data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
+                                            'active': meetup.active, 'meetup_owner_email': user.email}
+                                    gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_deactivated')
+                                except Exception as e:
+                                    print e
+
                             # Build the response
                             response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[])
                             for ulm in ndb.get_multi(meetup.peeps):
@@ -266,8 +277,8 @@ class DataApi(remote.Service):
                     meetup.put()
 
                     gcm_reg_ids = []
-                    for peep in ndb.get_multi(meetup.peeps):
-                        gcm_reg_ids.append(peep.user.get().gcm_main)
+                    for peep in ndb.get_multi([ulm.user for ulm in ndb.get_multi(meetup.peeps)]):
+                        gcm_reg_ids.append(peep.gcm_main)
                     try:
                         gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                         data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
@@ -297,8 +308,8 @@ class DataApi(remote.Service):
                 meetup.put()
 
                 gcm_reg_ids = []
-                for peep in ndb.get_multi(meetup.peeps):
-                    gcm_reg_ids.append(peep.user.get().gcm_main)
+                for peep in ndb.get_multi([ulm.user for ulm in ndb.get_multi(meetup.peeps)]):
+                    gcm_reg_ids.append(peep.gcm_main)
                 try:
                     gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                     data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
