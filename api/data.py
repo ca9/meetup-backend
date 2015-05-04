@@ -244,6 +244,7 @@ class DataApi(remote.Service):
                                                                  request.lat, request.lon)
                                         if dist < 500:
                                             my_meetup_loc.notified = True
+                                            my_meetup_loc.put()
                                             data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
                                             'active': meetup.active, 'meetup_owner_email': owner.email, 'closeness': dist,
                                             'close_to': peep.email, 'last_time': str(ulm.last_update)}
@@ -273,7 +274,6 @@ class DataApi(remote.Service):
                                                      collapse_key='meetup_deactivated_auto')
                                 except Exception as e:
                                     print e
-
                             return response
                         return MeetupLocationsUpdateFullMessage(
                             success=SuccessMessage(str_value="Not a member of this meetup!"))
