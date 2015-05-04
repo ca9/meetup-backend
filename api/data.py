@@ -1,5 +1,6 @@
 import calendar
 from datetime import datetime
+import math
 from authentication import *
 from models import *
 from datetime import timedelta
@@ -197,6 +198,7 @@ class DataApi(remote.Service):
                 if meetup:
                     if meetup.active:
                         if meetup.key in user.meetups:
+                            gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                             my_meetup_loc = UserLocationMeetup.query(UserLocationMeetup.meetup == meetup.key,
                                                                      UserLocationMeetup.user == user.key).get()
                             if not my_meetup_loc:
@@ -209,6 +211,8 @@ class DataApi(remote.Service):
 
                             # Update me.
                             my_meetup_loc.last_location = ndb.GeoPt(request.lat, request.lon)
+                            close_to_arrival = distance_lat_long(request.lat, request.lon,
+                                                                 meetup.destination.lat, meetup.destination.lon) <= 1000
 
                             location = LocationItem(location=my_meetup_loc.last_location)
                             location.put()
@@ -216,29 +220,16 @@ class DataApi(remote.Service):
                             my_meetup_loc.locations.append(location.key)
                             my_meetup_loc.put()
 
-                            # deactivate if we're done
-                            if meetup.time_to_arrive - datetime.now() > timedelta(hours=-1):
-                                meetup.active = False
-                                meetup.put() #todo: notify
-
-                                # notify
-                                gcm_reg_ids = []
-                                for peep in ndb.get_multi([ulm.user for ulm in ndb.get_multi(meetup.peeps)]):
-                                    gcm_reg_ids.append(peep.gcm_main)
-                                try:
-                                    gcm = GCM(client_ids.API_SERVER_GCM_PIN)
-                                    data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
-                                            'active': meetup.active, 'meetup_owner_email': user.email}
-                                    gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_deactivated')
-                                except Exception as e:
-                                    print e
-
                             # Build the response
                             response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[],
                                                                         ownerEmail=owner.email, meetupName=meetup.name)
+                            gcm_reg_ids = []
                             for ulm in ndb.get_multi(meetup.peeps):
                                 peep = ulm.user.get()
+                                gcm_reg_ids.append(peep.gcm_main)
+
                                 if ulm.last_location:
+                                    # build message
                                     a_plm = PeepLocationsMessage(name=peep.nickname, email=peep.email,
                                                                  latest_location=LocationMessage(
                                                                      lat=ulm.last_location.lat,
@@ -246,13 +237,43 @@ class DataApi(remote.Service):
                                                                      lon=ulm.last_location.lon,
                                                                      # GeoPt
                                                                      time=ulm.last_update))
-                                    if request.details:
-                                        locs = [
-                                            LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
-                                            for
-                                            loc in ndb.get_multi(ulm.locations)]  # LocationItems
-                                        a_plm.locations = locs
                                     response.UserMeetupLocations.append(a_plm)
+                                    # check if im close and notify heartbeater dude
+                                    if peep.email != user.email and not close_to_arrival and not my_meetup_loc.notified:
+                                        dist = distance_lat_long(ulm.last_location.lat, ulm.last_location.lon,
+                                                                 request.lat, request.lon)
+                                        if dist < 500:
+                                            my_meetup_loc.notified = True
+                                            data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
+                                            'active': meetup.active, 'meetup_owner_email': owner.email,
+                                            'closeness': dist, 'close_to': peep.email, 'last_time': ulm.last_update}
+                                            try:
+                                                gcm.json_request(registration_ids=[user.gcm_main], data = data,
+                                                                 collapse_key='pair_up')
+                                            except Exception as e:
+                                                print e
+                                # add fine locations for the peep
+                                if request.details:
+                                    locs = [
+                                        LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
+                                        for
+                                        loc in ndb.get_multi(ulm.locations)]  # LocationItems
+                                    a_plm.locations = locs
+
+                            # deactivate if we're done
+                            if datetime.now() - meetup.time_to_arrive > timedelta(hours=1):
+                                meetup.active = False
+                                meetup.put()  # todo: notify
+                                # notify
+                                try:
+                                    data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
+                                            'active': meetup.active, 'meetup_owner_email': owner.email,
+                                            'heartbeat_by': user.email}
+                                    gcm.json_request(registration_ids=gcm_reg_ids, data=data,
+                                                     collapse_key='meetup_deactivated_auto')
+                                except Exception as e:
+                                    print e
+
                             return response
                         return MeetupLocationsUpdateFullMessage(
                             success=SuccessMessage(str_value="Not a member of this meetup!"))
@@ -360,3 +381,10 @@ def local_to_utc(dt):
 def utc_to_local(t):
     secs = calendar.timegm(t)
     return time.localtime(secs)
+
+
+def distance_lat_long(lat1, lon1, lat2, lon2):
+    metres_per_degree = 111132.954
+    lat = abs(lat1 - lat2) * metres_per_degree
+    lon = abs(lon1 - lon2) * metres_per_degree
+    return math.sqrt(lat ** 2 + lon ** 2)

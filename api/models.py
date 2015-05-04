@@ -89,6 +89,7 @@ class UserLocationMeetup(EndpointsModel):
     locations = ndb.KeyProperty(kind='LocationItem', repeated=True)  # Wow, 3 levels.
     last_location = ndb.GeoPtProperty()
     last_update = ndb.DateTimeProperty(auto_now=True)
+    notified = ndb.BooleanProperty(default=False)
 
 
 class Meetup(EndpointsModel):
