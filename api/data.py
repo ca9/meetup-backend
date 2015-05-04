@@ -100,8 +100,8 @@ class DataApi(remote.Service):
 
                         # gcm inform
                         gcm_reg_ids = []
-                        for peep in ndb.get_multi(meetup.peeps).fetch():
-                            gcm_reg_ids.append(peep.gcm_main)
+                        for peep in ndb.get_multi(meetup.peeps):
+                            gcm_reg_ids.append(peep.user.get().gcm_main)
                         try:
                             gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                             data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
@@ -220,7 +220,7 @@ class DataApi(remote.Service):
                             # deactivate if we're done
                             if meetup.time_to_arrive - datetime.now() > timedelta(hours=-1):
                                 meetup.active = False
-                                meetup.put()
+                                meetup.put() #todo: notify
 
                             # Build the response
                             response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[])
@@ -266,8 +266,8 @@ class DataApi(remote.Service):
                     meetup.put()
 
                     gcm_reg_ids = []
-                    for peep in ndb.get_multi(meetup.peeps).fetch():
-                        gcm_reg_ids.append(peep.gcm_main)
+                    for peep in ndb.get_multi(meetup.peeps):
+                        gcm_reg_ids.append(peep.user.get().gcm_main)
                     try:
                         gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                         data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
@@ -297,8 +297,8 @@ class DataApi(remote.Service):
                 meetup.put()
 
                 gcm_reg_ids = []
-                for peep in ndb.get_multi(meetup.peeps).fetch():
-                    gcm_reg_ids.append(peep.gcm_main)
+                for peep in ndb.get_multi(meetup.peeps):
+                    gcm_reg_ids.append(peep.user.get().gcm_main)
                 try:
                     gcm = GCM(client_ids.API_SERVER_GCM_PIN)
                     data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
