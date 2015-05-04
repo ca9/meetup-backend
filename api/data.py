@@ -53,8 +53,8 @@ class DataApi(remote.Service):
             for peep in invitees:
                 peep.meetup_invites.append(new_meetup.key)  # TODO: Dispatch gcm invite
                 peep.put()
-                if peep.user.gcm_main:
-                    gcm_reg_ids.append(peep.user.gcm_main)
+                if peep.gcm_main:
+                    gcm_reg_ids.append(peep.gcm_main)
 
             try:
                 gcm = GCM(client_ids.API_SERVER_GCM_PIN)

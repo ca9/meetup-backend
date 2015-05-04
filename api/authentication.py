@@ -28,7 +28,7 @@ def check_user():
     """
     try:
         user = get_user()
-        email = user.email()
+        email = user.email().lower()
         userqry = UserModel.query(UserModel.email == email)
         if userqry.count():
             return userqry.get()
