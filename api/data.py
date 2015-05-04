@@ -234,7 +234,8 @@ class DataApi(remote.Service):
                                     print e
 
                             # Build the response
-                            response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[])
+                            response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[],
+                                                                        ownerEmail=owner.email, meetupName=meetup.name)
                             for ulm in ndb.get_multi(meetup.peeps):
                                 peep = ulm.user.get()
                                 if ulm.last_location:

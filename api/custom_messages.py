@@ -100,6 +100,8 @@ class PeepLocationsMessage(messages.Message):
 class MeetupLocationsUpdateFullMessage(messages.Message):
     success = messages.MessageField(SuccessMessage, 1, required=True)
     UserMeetupLocations = messages.MessageField(PeepLocationsMessage, 2, repeated=True)
+    meetupName = messages.StringField(3)
+    ownerEmail = messages.StringField(4)
 
 
 """
