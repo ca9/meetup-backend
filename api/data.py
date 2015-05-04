@@ -3,6 +3,7 @@ from datetime import datetime
 from authentication import *
 from models import *
 from datetime import timedelta
+from gcm import GCM
 
 @endpoints.api(name='data_api',
                version='v2',
@@ -48,9 +49,20 @@ class DataApi(remote.Service):
                 new_meetup.time_to_arrive = time_to_arrive_utc
             new_meetup.put()
 
+            gcm_reg_ids = []
             for peep in invitees:
                 peep.meetup_invites.append(new_meetup.key)  # TODO: Dispatch gcm invite
                 peep.put()
+                if peep.user.gcm_main:
+                    gcm_reg_ids.append(peep.user.gcm_main)
+
+            try:
+                gcm = GCM(client_ids.API_SERVER_GCM_PIN)
+                data = {'meetup_name': new_meetup.name, 'meetup_owner': user.nickname, 'active': new_meetup.active}
+                gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='make_meetup')
+            except Exception as e:
+                print e
+
             user.meetups.append(new_meetup.key)
             user.put()
 
