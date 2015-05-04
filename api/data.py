@@ -188,23 +188,28 @@ class DataApi(remote.Service):
                             my_meetup_loc.locations.append(location.key)
                             my_meetup_loc.put()
 
+                            # deactivate if we're done
+                            if meetup.time_to_arrive - datetime.now() > timedelta(hours=-1):
+                                meetup.active = False
+                                meetup.put()
+
                             # Build the response
                             response = MeetupLocationsUpdateFullMessage(success=success(), UserMeetupLocations=[])
                             for ulm in ndb.get_multi(meetup.peeps):
                                 peep = ulm.user.get()
-                                a_plm = PeepLocationsMessage(name=peep.nickname, email=peep.email,
-                                                             latest_location=LocationMessage(lat=ulm.last_location.lat,
-                                                                                             # GeoPt
-                                                                                             lon=ulm.last_location.lon,
-                                                                                             # GeoPt
-                                                                                             time=ulm.last_update))
-                                if request.details:
-                                    locs = [LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
-                                            for
-                                            loc in ndb.get_multi(ulm.locations)]  # LocationItems
-                                    a_plm.locations = locs
-                                response.UserMeetupLocations.append(a_plm)
-
+                                if ulm.last_location:
+                                    a_plm = PeepLocationsMessage(name=peep.nickname, email=peep.email,
+                                                                 latest_location=LocationMessage(lat=ulm.last_location.lat,
+                                                                                                 # GeoPt
+                                                                                                 lon=ulm.last_location.lon,
+                                                                                                 # GeoPt
+                                                                                                 time=ulm.last_update))
+                                    if request.details:
+                                        locs = [LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
+                                                for
+                                                loc in ndb.get_multi(ulm.locations)]  # LocationItems
+                                        a_plm.locations = locs
+                                    response.UserMeetupLocations.append(a_plm)
                             return response
                         return MeetupLocationsUpdateFullMessage(
                             success=SuccessMessage(str_value="Not a member of this meetup!"))
