@@ -5,6 +5,7 @@ from models import *
 from datetime import timedelta
 from gcm import GCM
 
+
 @endpoints.api(name='data_api',
                version='v2',
                description='Access, create or delete data for meetups.',
@@ -51,14 +52,15 @@ class DataApi(remote.Service):
 
             gcm_reg_ids = []
             for peep in invitees:
-                peep.meetup_invites.append(new_meetup.key)  # TODO: Dispatch gcm invite
+                peep.meetup_invites.append(new_meetup.key)
                 peep.put()
                 if peep.gcm_main:
                     gcm_reg_ids.append(peep.gcm_main)
 
             try:
                 gcm = GCM(client_ids.API_SERVER_GCM_PIN)
-                data = {'meetup_name': new_meetup.name, 'meetup_owner': user.nickname, 'active': new_meetup.active}
+                data = {'meetup_name': new_meetup.name, 'meetup_owner_name': user.nickname,
+                        'active': new_meetup.active, 'meetup_owner_email': user.email}
                 gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='make_meetup')
             except Exception as e:
                 print e
@@ -95,6 +97,21 @@ class DataApi(remote.Service):
                         user_loc.put()
 
                         meetup.peeps.append(user_loc.key)
+
+                        # gcm inform
+                        gcm_reg_ids = []
+                        for peep in ndb.get_multi(meetup.peeps).fetch():
+                            gcm_reg_ids.append(peep.gcm_main)
+                        try:
+                            gcm = GCM(client_ids.API_SERVER_GCM_PIN)
+                            data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
+                                    'active': meetup.active, 'meetup_owner_email': owner.email,
+                                    'acceptor_name': user.nickname,
+                                    'acceptor_email': user.email}
+                            gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_accepted')
+                        except Exception as e:
+                            print e
+
                         meetup.put()
                         return success()
                     return SuccessMessage(str_value="No pending invite for this meetup!")
@@ -211,21 +228,24 @@ class DataApi(remote.Service):
                                 peep = ulm.user.get()
                                 if ulm.last_location:
                                     a_plm = PeepLocationsMessage(name=peep.nickname, email=peep.email,
-                                                                 latest_location=LocationMessage(lat=ulm.last_location.lat,
-                                                                                                 # GeoPt
-                                                                                                 lon=ulm.last_location.lon,
-                                                                                                 # GeoPt
-                                                                                                 time=ulm.last_update))
+                                                                 latest_location=LocationMessage(
+                                                                     lat=ulm.last_location.lat,
+                                                                     # GeoPt
+                                                                     lon=ulm.last_location.lon,
+                                                                     # GeoPt
+                                                                     time=ulm.last_update))
                                     if request.details:
-                                        locs = [LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
-                                                for
-                                                loc in ndb.get_multi(ulm.locations)]  # LocationItems
+                                        locs = [
+                                            LocationMessage(lat=loc.location.lat, lon=loc.location.lon, time=loc.time)
+                                            for
+                                            loc in ndb.get_multi(ulm.locations)]  # LocationItems
                                         a_plm.locations = locs
                                     response.UserMeetupLocations.append(a_plm)
                             return response
                         return MeetupLocationsUpdateFullMessage(
                             success=SuccessMessage(str_value="Not a member of this meetup!"))
-                    return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="Meetup is inactive.", int_value=2))
+                    return MeetupLocationsUpdateFullMessage(
+                        success=SuccessMessage(str_value="Meetup is inactive.", int_value=2))
                 return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such meetup!"))
             return MeetupLocationsUpdateFullMessage(success=SuccessMessage(str_value="No such owner."))
         return MeetupLocationsUpdateFullMessage(success=no_user())
@@ -240,10 +260,22 @@ class DataApi(remote.Service):
         if user:
             meetup = Meetup.query(Meetup.owner == user.key, Meetup.name == request.meetup_name).get()
             if meetup:
-                time_diff = meetup.time_to_arrive - datetime.now() #this is in utc
+                time_diff = meetup.time_to_arrive - datetime.now()  # this is in utc
                 if timedelta(hours=3) > time_diff > timedelta(hours=-1):
                     meetup.active = True
                     meetup.put()
+
+                    gcm_reg_ids = []
+                    for peep in ndb.get_multi(meetup.peeps).fetch():
+                        gcm_reg_ids.append(peep.gcm_main)
+                    try:
+                        gcm = GCM(client_ids.API_SERVER_GCM_PIN)
+                        data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
+                                'active': meetup.active, 'meetup_owner_email': user.email}
+                        gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_activated')
+                    except Exception as e:
+                        print e
+
                     return SuccessMessage(str_value="Meetup {} activated.".format(meetup.name), int_value=1)
                 return SuccessMessage(
                     str_value="Meetup cannot be activated. Time difference to start is {}".format(time_diff),
@@ -263,6 +295,18 @@ class DataApi(remote.Service):
             if meetup:
                 meetup.active = False
                 meetup.put()
+
+                gcm_reg_ids = []
+                for peep in ndb.get_multi(meetup.peeps).fetch():
+                    gcm_reg_ids.append(peep.gcm_main)
+                try:
+                    gcm = GCM(client_ids.API_SERVER_GCM_PIN)
+                    data = {'meetup_name': meetup.name, 'meetup_owner_name': user.nickname,
+                            'active': meetup.active, 'meetup_owner_email': user.email}
+                    gcm.json_request(registration_ids=gcm_reg_ids, data=data, collapse_key='meetup_deactivated')
+                except Exception as e:
+                    print e
+
                 return SuccessMessage(str_value="Meetup {} deactivated.".format(meetup.name), int_value=1)
             return SuccessMessage(str_value="Meetup not found.")
         return no_user()
@@ -272,7 +316,7 @@ class DataApi(remote.Service):
     def check_active(self, request):
         """ Checks if meetup is active. Please provide meetup owner and name. Returns 2 if active, 1 if inactive,
         0 if there is an error."""
-        user = check_user() #todo: check if the user making request is in the meetup
+        user = check_user()  # todo: check if the user making request is in the meetup
         if user:
             owner = UserModel.query(UserModel.email == request.owner).get()
             if owner:
