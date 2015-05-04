@@ -245,8 +245,8 @@ class DataApi(remote.Service):
                                         if dist < 500:
                                             my_meetup_loc.notified = True
                                             data = {'meetup_name': meetup.name, 'meetup_owner_name': owner.nickname,
-                                            'active': meetup.active, 'meetup_owner_email': owner.email,
-                                            'closeness': dist, 'close_to': peep.email, 'last_time': ulm.last_update}
+                                            'active': meetup.active, 'meetup_owner_email': owner.email, 'closeness': dist,
+                                            'close_to': peep.email, 'last_time': str(ulm.last_update)}
                                             try:
                                                 gcm.json_request(registration_ids=[user.gcm_main], data = data,
                                                                  collapse_key='pair_up')
